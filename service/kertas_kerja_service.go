@@ -20,7 +20,7 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 	// Konversi tahun dan kategori lokasi ke tipe data yang sesuai
 	tahunPembuatan, _ := strconv.Atoi(req.TahunPembuatan)
 	kategoriLokasi, _ := strconv.Atoi(req.KategoriLokasi)
-	tahunPenilaian := tahunPembuatan // Atau ambil dari field lain jika ada
+	// tahunPenilaian := tahunPembuatan // Atau ambil dari field lain jika ada
 
 	// Query ke repository
 	dataPembanding, err := s.kertasKerjarRepo.FindDataPembanding(
@@ -28,8 +28,7 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 		req.TipeKendaraan,
 		tahunPembuatan,
 		req.LokasiObjek,
-		kategoriLokasi,
-		tahunPenilaian,
+		// tahunPenilaian,
 	)
 	if err != nil {
 		return &dto.KertasKerjaResponse{
@@ -40,24 +39,24 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 	}
 
 	// Mapping hasil ke DTO response
-	var pembanding dto.DataPembanding
-	if len(dataPembanding) > 0 {
-		lelang := dataPembanding[0] // Ambil data pertama sebagai contoh
-		pembanding = dto.DataPembanding{
+	var pembandingList []dto.DataPembanding
+	for _, lelang := range dataPembanding {
+		pembanding := dto.DataPembanding{
 			KodeLelang:     lelang.Kode,
 			Merek:          lelang.Merek,
 			Tipe:           lelang.Tipe,
 			TahunPembuatan: lelang.TahunPembuatan,
 			TahunTransaksi: lelang.TahunLelang,
 			Lokasi:         lelang.Kpknl,
-			KategoriLokasi: lelang.KategoriLokasi,
+			KategoriLokasi: kategoriLokasi,
 			HargaLelang:    float64(lelang.HargaLaku),
 		}
+		pembandingList = append(pembandingList, pembanding)
 	}
 
 	result := dto.KertasKerjaData{
 		InputLelang:    *req,
-		DataPembanding: []dto.DataPembanding{pembanding},
+		DataPembanding: pembandingList,
 	}
 
 	return &dto.KertasKerjaResponse{
