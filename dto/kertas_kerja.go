@@ -1,0 +1,52 @@
+package dto
+
+type KertasKerjaRequest struct {
+	NamaObjek           string `json:"nama_objek"`
+	LokasiObjek         string `json:"lokasi_objek"`
+	NUP                 string `json:"nup"`
+	KategoriLokasi      string `json:"kategori_lokasi"`
+	MerekKendaraan      string `json:"merek_kendaraan"`
+	TipeKendaraan       string `json:"tipe_kendaraan"`
+	NomorPolisi         string `json:"nomor_polisi"`
+	DokumenKepemilikan  string `json:"dokumen_kepemilikan"`
+	PemilikDokumen      string `json:"pemilik_dokumen"`
+	MasaBerlaku         string `json:"masa_berlaku"`
+	PenggunaanKendaraan string `json:"penggunaan_kendaraan"`
+	Ketarangan          string `json:"ketarangan"`
+	Warna               string `json:"warna"`
+	TahunPembuatan      string `json:"tahun_pembuatan"`
+	BahanBakar          string `json:"bahan_bakar"`
+	KondisiKendaraan    string `json:"kondisi_kendaraan"`
+}
+
+type DataPembanding struct {
+	KodeLelang     string
+	Merek          string
+	Tipe           string
+	TahunPembuatan int
+	TahunTransaksi int
+	Lokasi         string
+	KategoriLokasi int
+	HargaLelang    float64
+}
+
+type DataPenyesuaian struct {
+	Tipe           string
+	Merek          string
+	Waktu          string
+	Lokasi         string
+	TahunPembuatan int
+	Total          float64
+	NilaiTaksiran  float64
+}
+
+type KertasKerjaData struct {
+	InputLelang    KertasKerjaRequest `json:"input_lelang"`
+	DataPembanding []DataPembanding   `json:"data_pembanding"`
+}
+
+type KertasKerjaResponse struct {
+	Status  string          `json:"status_code"`
+	Message string          `json:"message"`
+	Data    KertasKerjaData `json:"data"`
+}
