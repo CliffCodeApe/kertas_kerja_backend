@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"kertas_kerja/contract"
 	"kertas_kerja/entity"
 
@@ -66,9 +65,6 @@ func (r *kertasKerjaRepo) FindDataPembanding(
 	if len(hasil) > 7 {
 		hasil = hasil[:7]
 	}
-
-	fmt.Printf("PARAMS: merek=%s, tipe=%s, tahun_pembuatan=%d, kpknl=%s\n", merek, tipe, tahunPembuatan, lokasi)
-	fmt.Printf("%+v\n", hasil)
 
 	return hasil, nil
 }

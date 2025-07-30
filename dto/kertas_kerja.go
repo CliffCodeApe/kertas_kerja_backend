@@ -10,9 +10,10 @@ type KertasKerjaRequest struct {
 	NomorPolisi         string `json:"nomor_polisi"`
 	DokumenKepemilikan  string `json:"dokumen_kepemilikan"`
 	PemilikDokumen      string `json:"pemilik_dokumen"`
+	JenisKendaraan      string `json:"jenis_kendaraan"`
 	MasaBerlaku         string `json:"masa_berlaku"`
 	PenggunaanKendaraan string `json:"penggunaan_kendaraan"`
-	Ketarangan          string `json:"ketarangan"`
+	Keterangan          string `json:"keterangan"`
 	Warna               string `json:"warna"`
 	TahunPembuatan      string `json:"tahun_pembuatan"`
 	BahanBakar          string `json:"bahan_bakar"`
