@@ -20,7 +20,6 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 	// Konversi tahun dan kategori lokasi ke tipe data yang sesuai
 	tahunPembuatan, _ := strconv.Atoi(req.TahunPembuatan)
 	kategoriLokasi, _ := strconv.Atoi(req.KategoriLokasi)
-	// tahunPenilaian := tahunPembuatan // Atau ambil dari field lain jika ada
 
 	// Query ke repository
 	dataPembanding, err := s.kertasKerjarRepo.FindDataPembanding(
@@ -28,7 +27,6 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 		req.TipeKendaraan,
 		tahunPembuatan,
 		req.LokasiObjek,
-		// tahunPenilaian,
 	)
 	if err != nil {
 		return &dto.KertasKerjaResponse{

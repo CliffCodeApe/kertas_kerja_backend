@@ -23,22 +23,31 @@ func (r *kertasKerjaRepo) FindDataPembanding(
 	tipe string,
 	tahunPembuatan int,
 	lokasi string,
-	// tahunPenilaian int,
 ) ([]entity.Lelang, error) {
 	var hasil []entity.Lelang
 
 	// Range tahun pembuatan ±5 tahun
-	// tahunMin := tahunPembuatan - 5
-	// tahunMax := tahunPembuatan + 5
+	tahunMin := tahunPembuatan - 5
+	tahunMax := tahunPembuatan + 5
 
-	// Range tahun transaksi maksimal 3 tahun ke belakang
-	// tahunTransaksiMin := tahunPenilaian - 3
-	// tahunTransaksiMax := tahunPenilaian
+	// Ambil tahun lelang terbaru dari database untuk filter range tahun lelang
+	var tahunLelangMax int
+	r.db.Table("data_lelang").
+		Select("MAX(tahun_lelang)").
+		Where("merek = ? AND tipe = ? AND tahun_pembuatan BETWEEN ? AND ? AND kpknl = ?", merek, tipe, tahunMin, tahunMax, lokasi).
+		Scan(&tahunLelangMax)
+
+	// Jika tidak ada data, return hasil kosong
+	if tahunLelangMax == 0 {
+		return hasil, nil
+	}
+
+	tahunLelangMin := tahunLelangMax - 3
 
 	// Tahap 1: Lokasi sama
 	r.db.Table("data_lelang").Where(
-		"merek = ? AND tipe = ? AND tahun_pembuatan = ? AND kpknl = ?",
-		merek, tipe, tahunPembuatan, lokasi,
+		"merek = ? AND tipe = ? AND tahun_pembuatan BETWEEN ? AND ? AND tahun_lelang BETWEEN ? AND ? AND kpknl = ?",
+		merek, tipe, tahunMin, tahunMax, tahunLelangMin, tahunLelangMax, lokasi,
 	).Order("tahun_lelang DESC, harga_laku ASC").
 		Limit(7).Find(&hasil)
 

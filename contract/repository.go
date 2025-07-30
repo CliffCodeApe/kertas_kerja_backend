@@ -12,6 +12,5 @@ type KertasKerjaRepository interface {
 		tipe string,
 		tahunPembuatan int,
 		kpknl string,
-		// tahunPenilaian int,
 	) ([]entity.Lelang, error)
 }
