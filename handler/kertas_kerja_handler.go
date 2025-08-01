@@ -22,6 +22,7 @@ func (k *kertasKerjaController) initService(service *contract.Service) {
 
 func (k *kertasKerjaController) initRoute(app *gin.RouterGroup) {
 	app.POST("/", k.GetDataPembanding)
+	app.GET("/lelang/:kode", k.GetDataLelangByKode)
 }
 
 func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {
@@ -40,6 +41,29 @@ func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "500",
 			"message": "Gagal mencari data pembanding",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (k *kertasKerjaController) GetDataLelangByKode(ctx *gin.Context) {
+	kode := ctx.Param("kode")
+	if kode == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "400",
+			"message": "Kode lelang tidak boleh kosong",
+		})
+		return
+	}
+
+	response, err := k.service.GetDataLelangByKode(kode)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "500",
+			"message": "Gagal mendapatkan data lelang",
 			"error":   err.Error(),
 		})
 		return

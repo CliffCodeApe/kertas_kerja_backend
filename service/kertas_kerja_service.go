@@ -4,6 +4,7 @@ import (
 	"kertas_kerja/contract"
 	"kertas_kerja/dto"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
@@ -21,15 +22,16 @@ func implKertasKerjaService(repo *contract.Repository) contract.KertasKerjaServi
 
 func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.KertasKerjaResponse, error) {
 	// Konversi tahun dan kategori lokasi ke tipe data yang sesuai
-	tahunPembuatan, _ := strconv.Atoi(req.TahunPembuatan)
 	kategoriLokasi, _ := strconv.Atoi(req.KategoriLokasi)
+	lokasiBersih := strings.TrimPrefix(strings.TrimSpace(req.LokasiObjek), "KPKNL ")
 
 	// Query ke repository
 	dataPembanding, err := s.kertasKerjarRepo.FindDataPembanding(
 		req.MerekKendaraan,
 		req.TipeKendaraan,
-		tahunPembuatan,
+		req.TahunPembuatan,
 		req.LokasiObjek,
+		req.TahunLelang,
 	)
 	if err != nil {
 		return &dto.KertasKerjaResponse{
@@ -48,7 +50,7 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 			Tipe:           lelang.Tipe,
 			TahunPembuatan: lelang.TahunPembuatan,
 			TahunTransaksi: lelang.TahunLelang,
-			Lokasi:         lelang.Kpknl,
+			Lokasi:         lokasiBersih,
 			KategoriLokasi: kategoriLokasi,
 			HargaLelang:    float64(lelang.HargaLaku),
 		}
@@ -56,11 +58,29 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 	}
 
 	result := dto.KertasKerjaData{
-		InputLelang:    *req,
+		InputLelang: dto.KertasKerjaRequest{
+			NamaObjek:           req.NamaObjek,
+			LokasiObjek:         lokasiBersih,
+			NUP:                 req.NUP,
+			KategoriLokasi:      req.KategoriLokasi,
+			MerekKendaraan:      req.MerekKendaraan,
+			TipeKendaraan:       req.TipeKendaraan,
+			TahunPembuatan:      req.TahunPembuatan,
+			NomorPolisi:         req.NomorPolisi,
+			DokumenKepemilikan:  req.DokumenKepemilikan,
+			PemilikDokumen:      req.PemilikDokumen,
+			JenisKendaraan:      req.JenisKendaraan,
+			MasaBerlaku:         req.MasaBerlaku,
+			PenggunaanKendaraan: req.PenggunaanKendaraan,
+			Keterangan:          req.Keterangan,
+			Warna:               req.Warna,
+			BahanBakar:          req.BahanBakar,
+			KondisiKendaraan:    req.KondisiKendaraan,
+		},
 		DataPembanding: pembandingList,
 	}
 
-	err = IsiDataInputKeExcel(&result.InputLelang)
+	err = IsiDataInputKeExcel(&result.InputLelang, &pembandingList) // Ambil data pembanding pertama untuk mengisi Excel
 	if err != nil {
 		return &dto.KertasKerjaResponse{
 			Status:  "500",
@@ -76,7 +96,7 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 	}, nil
 }
 
-func IsiDataInputKeExcel(input *dto.KertasKerjaRequest) (err error) {
+func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.DataPembanding) (err error) {
 	f, err := excelize.OpenFile("assets/template/Kertas_Kerja_template.xlsx")
 	if err != nil {
 		return err
@@ -141,8 +161,90 @@ func IsiDataInputKeExcel(input *dto.KertasKerjaRequest) (err error) {
 		f.SetCellValue(sheet, "M28", "✓")
 	}
 
-	savePath := "assets/kertas_kerja/Kertas_Kerja_" + time.Now().Format("20060102150405") + ".xlsx"
+	// Isi data pembanding
+	if len(*dataPembanding) > 0 {
+		for i, pembanding := range *dataPembanding {
+			row := 31 + i // Mulai dari baris 32 untuk data pembanding
+			f.SetCellValue(sheet, "B"+strconv.Itoa(row), pembanding.Merek)
+			f.SetCellValue(sheet, "D"+strconv.Itoa(row), pembanding.KodeLelang)
+			f.SetCellValue(sheet, "G"+strconv.Itoa(row), pembanding.Tipe)
+			f.SetCellValue(sheet, "I"+strconv.Itoa(row), pembanding.HargaLelang)
+			f.SetCellValue(sheet, "K"+strconv.Itoa(row), pembanding.TahunTransaksi)
+			f.SetCellValue(sheet, "N"+strconv.Itoa(row), pembanding.Lokasi)
+			f.SetCellValue(sheet, "O"+strconv.Itoa(row), pembanding.KategoriLokasi)
+			f.SetCellValue(sheet, "P"+strconv.Itoa(row), pembanding.TahunPembuatan)
+		}
+	}
+
+	savePath := "assets/kertas_kerja/Kertas_Kerja_" + time.Now().Format("02_01_2006") + ".xlsx"
 	// Simpan file hasil
 	return f.SaveAs(savePath)
 	// return savePath, err
+}
+
+// Daftar lokasi per kategori
+var kategori1 = []string{
+	"Malang", "Medan", "Solo", "Semarang", "Yogyakarta", "Pelembang", "Denpasar",
+	"Pekanbaru", "Makassar", "Cirebon", "Balikpapan", "Batam",
+}
+
+var kategori2 = []string{
+	"Bekasi", "Tanggerang", "Bogor", "Jakarta", "Sidoarjo", "Surabaya", "Bandung", "Serang",
+}
+
+var kategori3 = []string{
+	"Purwakarta", "Bandar Lampung", "Banjarmasin", "Tasikmalaya", "Madiun", "Purwokerto", "Padang",
+	"Banda Aceh", "Tegal", "Pekalongan", "Jember", "Singaraja", "Bukittinggi", "Samarinda", "Metro",
+	"Mataram", "Jambi", "Pematang Siantar", "Pontianak", "Kisaran", "Ljhoksumawe", "Dumai", "Bengkulu",
+	"Pemekasan", "Manado", "Lahat", "Palangkaraya", "Bontang", "Pare-Pare", "Kendari", "Kupang", "Ambon",
+	"Padang Sideumpuan", "Gorontalo", "Palu", "Jayapura", "Singkawang", "Palopo", "Sorong",
+	"Pangkal Pinang", "Mamuju", "Tarakan", "Bima", "Pangkalan Bun", "Ternate", "Biak",
+}
+
+func GetKategoriLokasi(rawLokasi string) int {
+	lokasi := strings.TrimPrefix(strings.TrimSpace(rawLokasi), "KPKNL ")
+	if strings.HasPrefix(lokasi, "Jakarta") {
+		lokasi = "Jakarta"
+	}
+	for _, loc := range kategori1 {
+		if strings.EqualFold(loc, lokasi) {
+			return 1
+		}
+	}
+	for _, loc := range kategori2 {
+		if strings.EqualFold(loc, lokasi) {
+			return 2
+		}
+	}
+	for _, loc := range kategori3 {
+		if strings.EqualFold(loc, lokasi) {
+			return 3
+		}
+	}
+	return 0 // Tidak terklasifikasi
+}
+
+func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error) {
+	lelang, err := s.kertasKerjarRepo.FindDataLelangByKode(kode)
+	if err != nil {
+		return nil, err
+	}
+
+	kategoriLokasi := GetKategoriLokasi(lelang.Kpknl)
+	lokasiBersih := strings.TrimPrefix(strings.TrimSpace(lelang.Kpknl), "KPKNL ")
+
+	return &dto.DataPembandingResponse{
+		Status:  "200",
+		Message: "Berhasil mendapatkan data lelang",
+		Data: dto.DataPembanding{
+			KodeLelang:     lelang.Kode,
+			Merek:          lelang.Merek,
+			Tipe:           lelang.Tipe,
+			TahunPembuatan: lelang.TahunPembuatan,
+			TahunTransaksi: lelang.TahunLelang,
+			Lokasi:         lokasiBersih,
+			KategoriLokasi: kategoriLokasi,
+			HargaLelang:    float64(lelang.HargaLaku),
+		},
+	}, nil
 }

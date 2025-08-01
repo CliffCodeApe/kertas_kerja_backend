@@ -15,9 +15,10 @@ type KertasKerjaRequest struct {
 	PenggunaanKendaraan string `json:"penggunaan_kendaraan"`
 	Keterangan          string `json:"keterangan"`
 	Warna               string `json:"warna"`
-	TahunPembuatan      string `json:"tahun_pembuatan"`
+	TahunPembuatan      int    `json:"tahun_pembuatan"`
 	BahanBakar          string `json:"bahan_bakar"`
 	KondisiKendaraan    string `json:"kondisi_kendaraan"`
+	TahunLelang         int    `json:"tahun_lelang"`
 }
 
 type DataPembanding struct {
@@ -50,4 +51,10 @@ type KertasKerjaResponse struct {
 	Status  string          `json:"status_code"`
 	Message string          `json:"message"`
 	Data    KertasKerjaData `json:"data"`
+}
+
+type DataPembandingResponse struct {
+	Status  string         `json:"status_code"`
+	Message string         `json:"message"`
+	Data    DataPembanding `json:"data"`
 }
