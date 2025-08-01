@@ -76,6 +76,7 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 			Warna:               req.Warna,
 			BahanBakar:          req.BahanBakar,
 			KondisiKendaraan:    req.KondisiKendaraan,
+			Provinsi:            req.Provinsi,
 		},
 		DataPembanding: pembandingList,
 	}
@@ -248,3 +249,5 @@ func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingR
 		},
 	}, nil
 }
+
+// func (s *kertasKerjaServ) GetDataPenyesuaian()
