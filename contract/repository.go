@@ -12,7 +12,7 @@ type KertasKerjaRepository interface {
 		tipe string,
 		tahunPembuatan int,
 		kpknl string,
-		tahunLelang int,
+		provinsi string,
 	) ([]entity.Lelang, error)
 	FindDataLelangByKode(kode string) (*entity.Lelang, error)
 }

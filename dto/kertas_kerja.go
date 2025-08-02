@@ -18,7 +18,6 @@ type KertasKerjaRequest struct {
 	TahunPembuatan      int    `json:"tahun_pembuatan"`
 	BahanBakar          string `json:"bahan_bakar"`
 	KondisiKendaraan    string `json:"kondisi_kendaraan"`
-	TahunLelang         int    `json:"tahun_lelang"`
 	Provinsi            string `json:"provinsi"`
 }
 

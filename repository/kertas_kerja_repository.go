@@ -1,9 +1,10 @@
 package repository
 
 import (
-	"fmt"
 	"kertas_kerja/contract"
 	"kertas_kerja/entity"
+	"sort"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -23,66 +24,135 @@ func (r *kertasKerjaRepo) FindDataPembanding(
 	tipe string,
 	tahunPembuatan int,
 	lokasi string,
-	tahunLelang int,
+	provinsi string,
 ) ([]entity.Lelang, error) {
 	var hasil []entity.Lelang
+	var existingKode []string
 
-	// Range tahun pembuatan ±5 tahun
 	tahunMin := tahunPembuatan - 5
 	tahunMax := tahunPembuatan + 5
-
-	// Ambil tahun lelang terbaru dari database untuk filter range tahun lelang
-	// var tahunLelangMax *int
-	// r.db.Table("data_lelang").
-	// 	Select("MAX(tahun_lelang)").
-	// 	Where("merek = ? AND tipe = ? AND tahun_pembuatan BETWEEN ? AND ? AND kpknl = ?", merek, tipe, tahunMin, tahunMax, lokasi).
-	// 	Scan(&tahunLelangMax)
-
-	// if tahunLelangMax == nil {
-	// 	return hasil, fmt.Errorf("tahun Lelang tidak ditemukan untuk merek %s, tipe %s, tahun pembuatan %d, lokasi %s", merek, tipe, tahunPembuatan, lokasi)
-	// }
-
-	fmt.Printf("tahun lelang: %d\n", tahunLelang)
-
+	tahunLelang := time.Now().Year()
 	tahunLelangMin := tahunLelang - 3
-	tahunLelangMax := tahunLelang + 3
-	// Tahap 1: Query lokasi sama, simpan ke hasil
+	tahunLelangMax := tahunLelang
+
+	// Helper untuk menambah hasil dan kode unik
+	appendResult := func(data []entity.Lelang) {
+		for _, h := range data {
+			if !contains(existingKode, h.Kode) {
+				hasil = append(hasil, h)
+				existingKode = append(existingKode, h.Kode)
+			}
+		}
+	}
+
+	// Tahap 1
+	var tahap1 []entity.Lelang
 	r.db.Table("data_lelang").Where(
-		"merek = ? AND tipe = ? AND tahun_pembuatan BETWEEN ? AND ? AND tahun_lelang BETWEEN ? AND ? AND kpknl = ?",
+		"merek = ? AND tipe = ? AND tahun_pembuatan = ? AND tahun_lelang BETWEEN ? AND ? AND kpknl = ?",
+		merek, tipe, tahunPembuatan, tahunLelangMin, tahunLelangMax, lokasi,
+	).Order("tahun_lelang DESC, harga_laku ASC").Limit(7).Find(&tahap1)
+	appendResult(tahap1)
+	if len(hasil) >= 3 {
+		return limitHasil(hasil), nil
+	}
+
+	// Tahap 2
+	var tahap2 []entity.Lelang
+	r.db.Table("data_lelang").Where(
+		"merek = ? AND tipe = ? AND tahun_pembuatan = ? AND tahun_lelang BETWEEN ? AND ? AND kpknl != ? AND provinsi = ?",
+		merek, tipe, tahunPembuatan, tahunLelangMin, tahunLelangMax, lokasi, provinsi,
+	).Order("tahun_lelang DESC, harga_laku ASC").Limit(7 - len(hasil)).Find(&tahap2)
+	appendResult(tahap2)
+	if len(hasil) >= 3 {
+		return limitHasil(hasil), nil
+	}
+
+	// Tahap 3
+	var tahap3 []entity.Lelang
+	r.db.Table("data_lelang").Where(
+		"merek = ? AND tipe != ? AND tahun_pembuatan BETWEEN ? AND ? AND tahun_lelang BETWEEN ? AND ? AND kpknl = ?",
 		merek, tipe, tahunMin, tahunMax, tahunLelangMin, tahunLelangMax, lokasi,
-	).Order("tahun_lelang DESC, harga_laku ASC").
-		Limit(7).Find(&hasil)
-
-	// Jika hasil kurang dari 7, lanjut tahap 2
-	if len(hasil) < 7 {
-		var tambahan []entity.Lelang
-		var existingKode []string
-		for _, h := range hasil {
-			existingKode = append(existingKode, h.Kode)
-		}
-
-		query := r.db.Table("data_lelang").Where(
-			"merek = ? AND tipe = ? AND tahun_pembuatan BETWEEN ? AND ? AND tahun_lelang BETWEEN ? AND ? AND kpknl != ?",
-			merek, tipe, tahunMin, tahunMax, tahunLelangMin, tahunLelangMax, lokasi,
-		)
-		if len(existingKode) > 0 {
-			query = query.Where("kode NOT IN ?", existingKode)
-		}
-		query.Order("tahun_lelang DESC, harga_laku ASC").
-			Limit(7 - len(hasil)).Find(&tambahan)
-
-		// Gabungkan hasil tahap 1 dan tahap 2
-		hasil = append(hasil, tambahan...)
+	).Order("tahun_lelang DESC, harga_laku ASC").Limit(7 - len(hasil)).Find(&tahap3)
+	appendResult(tahap3)
+	if len(hasil) >= 3 {
+		return limitHasil(hasil), nil
 	}
 
-	// Batasi maksimal 7 data
-	if len(hasil) > 7 {
-		hasil = hasil[:7]
+	// Tahap 4
+	var tahap4 []entity.Lelang
+	r.db.Table("data_lelang").Where(
+		"merek = ? AND tipe != ? AND tahun_pembuatan BETWEEN ? AND ? AND tahun_lelang BETWEEN ? AND ? AND kpknl != ? AND provinsi = ?",
+		merek, tipe, tahunMin, tahunMax, tahunLelangMin, tahunLelangMax, lokasi, provinsi,
+	).Order("tahun_lelang DESC, harga_laku ASC").Limit(7 - len(hasil)).Find(&tahap4)
+	appendResult(tahap4)
+	if len(hasil) >= 3 {
+		return limitHasil(hasil), nil
 	}
 
-	fmt.Printf("Data pembanding ditemukan: %d\n", len(hasil))
+	// Tahap 5
+	var tahap5 []entity.Lelang
+	r.db.Table("data_lelang").Where(
+		"merek = ? AND tipe = ? AND tahun_pembuatan = ? AND tahun_lelang BETWEEN ? AND ? AND kpknl != ? AND provinsi ILIKE ?",
+		merek, tipe, tahunPembuatan, tahunLelangMin, tahunLelangMax, lokasi, "%Jawa%",
+	).Order("tahun_lelang DESC, harga_laku ASC").Limit(7 - len(hasil)).Find(&tahap5)
+	appendResult(tahap5)
+	if len(hasil) >= 3 {
+		return limitHasil(hasil), nil
+	}
 
-	return hasil, nil
+	// Tahap 6
+	var tahap6 []entity.Lelang
+	r.db.Table("data_lelang").Where(
+		"merek = ? AND tipe != ? AND tahun_pembuatan BETWEEN ? AND ? AND tahun_lelang BETWEEN ? AND ? AND kpknl != ? AND provinsi ILIKE ?",
+		merek, tipe, tahunMin, tahunMax, tahunLelangMin, tahunLelangMax, lokasi, "%Jawa%",
+	).Order("tahun_lelang DESC, harga_laku ASC").Limit(7 - len(hasil)).Find(&tahap6)
+	appendResult(tahap6)
+	if len(hasil) >= 3 {
+		return limitHasil(hasil), nil
+	}
+
+	// Tahap 7
+	var tahap7 []entity.Lelang
+	r.db.Table("data_lelang").Where(
+		"merek = ? AND tipe = ? AND tahun_pembuatan = ? AND tahun_lelang BETWEEN ? AND ? AND kpknl != ?",
+		merek, tipe, tahunPembuatan, tahunLelangMin, tahunLelangMax, lokasi,
+	).Order("tahun_lelang DESC, harga_laku ASC").Limit(7 - len(hasil)).Find(&tahap7)
+	appendResult(tahap7)
+	if len(hasil) >= 3 {
+		return limitHasil(hasil), nil
+	}
+
+	// Tahap 8
+	var tahap8 []entity.Lelang
+	r.db.Table("data_lelang").Where(
+		"merek = ? AND tipe != ? AND tahun_pembuatan BETWEEN ? AND ? AND tahun_lelang BETWEEN ? AND ? AND kpknl != ?",
+		merek, tipe, tahunMin, tahunMax, tahunLelangMin, tahunLelangMax, lokasi,
+	).Order("tahun_lelang DESC, harga_laku ASC").Limit(7 - len(hasil)).Find(&tahap8)
+	appendResult(tahap8)
+
+	return limitHasil(hasil), nil
+}
+
+// Helper untuk membatasi hasil sesuai aturan
+func limitHasil(data []entity.Lelang) []entity.Lelang {
+	if len(data) > 7 {
+		// Ambil 7 data dengan harga_laku terendah dari tahap terakhir
+		sort.Slice(data, func(i, j int) bool {
+			return data[i].HargaLaku < data[j].HargaLaku
+		})
+		return data[:7]
+	}
+	return data
+}
+
+// Helper untuk cek kode unik
+func contains(list []string, kode string) bool {
+	for _, k := range list {
+		if k == kode {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *kertasKerjaRepo) FindDataLelangByKode(kode string) (*entity.Lelang, error) {

@@ -3,6 +3,7 @@ package service
 import (
 	"kertas_kerja/contract"
 	"kertas_kerja/dto"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +32,7 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 		req.TipeKendaraan,
 		req.TahunPembuatan,
 		req.LokasiObjek,
-		req.TahunLelang,
+		req.Provinsi,
 	)
 	if err != nil {
 		return &dto.KertasKerjaResponse{
@@ -179,8 +180,17 @@ func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.Da
 
 	savePath := "assets/kertas_kerja/Kertas_Kerja_" + time.Now().Format("02_01_2006") + ".xlsx"
 	// Simpan file hasil
-	return f.SaveAs(savePath)
-	// return savePath, err
+	f.SaveAs(savePath)
+
+	excelFilename := "Kertas_Kerja_" + time.Now().Format("02_01_2006") + ".xlsx"
+	excelPath := "assets/kertas_kerja/" + excelFilename
+	pdfDir := "assets/kertas_kerja/"
+	err = ConvertExcelToPDF(excelPath, pdfDir)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Daftar lokasi per kategori
@@ -250,4 +260,7 @@ func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingR
 	}, nil
 }
 
-// func (s *kertasKerjaServ) GetDataPenyesuaian()
+func ConvertExcelToPDF(excelPath, pdfDir string) error {
+	cmd := exec.Command("libreoffice", "--headless", "--convert-to", "pdf", excelPath, "--outdir", pdfDir)
+	return cmd.Run()
+}

@@ -17,8 +17,9 @@ func getMigrations() []migration {
 		getCreateDataLelangTable(),
 		getInsertDataLelangTable(),
 		getCreateUsersTable(),
-		// getInsertUsersTable(),
+		getInsertUsersTable(),
 		getCreateKertasKerjaTable(),
+		// getCreateLelangKendaraanTable(),
 	}
 }
 
