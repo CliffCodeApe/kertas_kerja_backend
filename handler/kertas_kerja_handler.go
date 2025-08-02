@@ -24,6 +24,7 @@ func (k *kertasKerjaController) initService(service *contract.Service) {
 func (k *kertasKerjaController) initRoute(app *gin.RouterGroup) {
 	app.POST("/", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataPembanding)
 	app.GET("/lelang/:kode", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataLelangByKode)
+	app.POST("/save", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.SaveKertasKerjaToExcel)
 }
 
 func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {
@@ -71,4 +72,20 @@ func (k *kertasKerjaController) GetDataLelangByKode(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (k *kertasKerjaController) SaveKertasKerjaToExcel(ctx *gin.Context) {
+	var req dto.KertasKerjaData // berisi input lelang + list data pembanding
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	err := k.service.SaveKertasKerjaToExcel(&req.InputLelang, &req.DataPembanding)
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Gagal simpan ke Excel"})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"message": "Berhasil simpan ke Excel"})
 }

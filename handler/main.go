@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"kertas_kerja/contract"
+	"kertas_kerja/middleware"
 	"kertas_kerja/pkg/errs"
 	"log"
 	"net/http"
@@ -32,6 +33,7 @@ func New(app *gin.Engine, service *contract.Service) {
 	for _, c := range allController {
 		c.initService(service)
 		group := app.Group(c.getPrefix())
+		group.Use(middleware.CORSMiddleware()) // Global Middleware
 		c.initRoute(group)
 		log.Printf("initiate route %s\n", c.getPrefix())
 	}

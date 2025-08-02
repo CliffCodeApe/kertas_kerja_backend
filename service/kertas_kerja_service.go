@@ -82,14 +82,14 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 		DataPembanding: pembandingList,
 	}
 
-	err = IsiDataInputKeExcel(&result.InputLelang, &pembandingList) // Ambil data pembanding pertama untuk mengisi Excel
-	if err != nil {
-		return &dto.KertasKerjaResponse{
-			Status:  "500",
-			Message: "Gagal mengisi data ke Excel",
-			Data:    dto.KertasKerjaData{},
-		}, err
-	}
+	// err = IsiDataInputKeExcel(&result.InputLelang, &pembandingList) // Ambil data pembanding pertama untuk mengisi Excel
+	// if err != nil {
+	// 	return &dto.KertasKerjaResponse{
+	// 		Status:  "500",
+	// 		Message: "Gagal mengisi data ke Excel",
+	// 		Data:    dto.KertasKerjaData{},
+	// 	}, err
+	// }
 
 	return &dto.KertasKerjaResponse{
 		Status:  "200",
@@ -233,6 +233,10 @@ func GetKategoriLokasi(rawLokasi string) int {
 		}
 	}
 	return 0 // Tidak terklasifikasi
+}
+
+func (s *kertasKerjaServ) SaveKertasKerjaToExcel(input *dto.KertasKerjaRequest, pembandingList *[]dto.DataPembanding) error {
+	return IsiDataInputKeExcel(input, pembandingList)
 }
 
 func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error) {

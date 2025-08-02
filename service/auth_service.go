@@ -32,7 +32,7 @@ func (a *authServ) Login(payload *dto.AuthLoginRequest) (*dto.AuthLoginResponse,
 	verify := bcrypt.Verify(user.Password, payload.Password)
 
 	if !verify {
-		return nil, errs.ErrLoginFailed
+		return nil, errs.ErrDecryptFailed
 	}
 
 	accessToken, err := token2.GenerateAccessToken(&token2.UserAuthToken{

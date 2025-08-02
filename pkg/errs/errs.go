@@ -72,6 +72,7 @@ var (
 	ErrRequestBody        = NewBadRequest("Request body tidak valid")
 	ErrNamaSatkerNotFound = NewNotFoundError("Nama Satker tidak ditemukan")
 	ErrLoginFailed        = NewNotFoundError("Nama Satker atau password tidak ditemukan")
+	ErrDecryptFailed      = NewNotFoundError("Dekripsi password gagal")
 
 	// storage errors
 	ErrInvalidFileType  = NewBadRequest("file type is not allowed")
