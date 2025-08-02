@@ -6,6 +6,7 @@ import (
 	"kertas_kerja/config"
 	"kertas_kerja/handler"
 	"kertas_kerja/internal/database"
+	"kertas_kerja/middleware"
 	"kertas_kerja/migrations"
 	"kertas_kerja/repository"
 	"kertas_kerja/service"
@@ -59,6 +60,7 @@ func Run() {
 
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	r.Use(middleware.CORSMiddleware())
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),

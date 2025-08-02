@@ -1,2 +1,5 @@
 .env
 assets/kertas_kerja/
+
+private.pem
+public.pem

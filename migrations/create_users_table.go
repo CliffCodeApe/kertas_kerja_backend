@@ -22,9 +22,8 @@ func (m *createUsersTable) Up(conn *sql.Tx) error {
 	CREATE TABLE users (
 		id                 SERIAL PRIMARY KEY,
 		nama_satker        varchar(255) NOT NULL,
-		kode_satker        varchar(255) NOT NULL,
+		kode_kl            varchar(255) NOT NULL,
 		email              varchar(255) NOT NULL,
-		nama               varchar(255) NOT NULL,
 		role               varchar(10) NOT NULL,
 		password           varchar(255) NOT NULL,
 		updated_at         TIMESTAMP NOT NULL DEFAULT NOW(),

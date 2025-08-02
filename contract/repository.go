@@ -1,9 +1,17 @@
 package contract
 
-import "kertas_kerja/entity"
+import (
+	"kertas_kerja/entity"
+)
 
 type Repository struct {
 	KertasKerja KertasKerjaRepository
+	User        UserRepository
+}
+
+type UserRepository interface {
+	GetByNamaSatker(namaSatker string) (*entity.User, error)
+	GetById(id uint64) (*entity.User, error)
 }
 
 type KertasKerjaRepository interface {

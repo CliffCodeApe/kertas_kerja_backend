@@ -3,6 +3,7 @@ package handler
 import (
 	"kertas_kerja/contract"
 	"kertas_kerja/dto"
+	"kertas_kerja/middleware"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,8 +22,8 @@ func (k *kertasKerjaController) initService(service *contract.Service) {
 }
 
 func (k *kertasKerjaController) initRoute(app *gin.RouterGroup) {
-	app.POST("/", k.GetDataPembanding)
-	app.GET("/lelang/:kode", k.GetDataLelangByKode)
+	app.POST("/", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataPembanding)
+	app.GET("/lelang/:kode", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataLelangByKode)
 }
 
 func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {

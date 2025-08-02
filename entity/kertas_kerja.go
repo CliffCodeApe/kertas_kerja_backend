@@ -6,13 +6,13 @@ import (
 
 // KertasKerja represents the structure of the kertas kerja entity.
 type KertasKerja struct {
-	ID        int       `json:"id"`
-	UserID    int       `json:"user_id"`
-	Deskripsi string    `json:"deskripsi"`
-	NamaObjek string    `json:"nama_objek"`
-	FilePath  string    `json:"file_path"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uint64    `gorm:"column:id;primaryKey;autoIncrement;not null;<-create"`
+	UserID    int       `gorm:"user_id"`
+	Deskripsi string    `gorm:"deskripsi"`
+	NamaObjek string    `gorm:"nama_objek"`
+	FilePath  string    `gorm:"file_path"`
+	CreatedAt time.Time `gorm:"created_at"`
+	UpdatedAt time.Time `gorm:"updated_at"`
 }
 
 type Lelang struct {

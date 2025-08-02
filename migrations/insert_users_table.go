@@ -21,14 +21,13 @@ func (m *insertUsersTable) Up(conn *sql.Tx) error {
 	_, err := conn.Exec(`
 	INSERT INTO users (
 		nama_satker,
-		kode_satker,
+		kode_kl,
 		email,
-		nama,
 		role,
 		password
 	) VALUES
-	('kementerian keuangan republik indonesia', '015', 'panitia@example.com', 'John Doe', 'panitia', 'password'),
-	('kementerian keuangan republik indonesia', '015', 'admin@example.com', 'Jane Doe', 'admin', 'password')`)
+	('John Doe', '015', 'panitia@example.com', 'panitia', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm'),
+	('Jane Doe', '015', 'admin@example.com', 'admin', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm')`)
 
 	if err != nil {
 		return err
