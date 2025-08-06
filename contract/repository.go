@@ -21,6 +21,8 @@ type KertasKerjaRepository interface {
 		tahunPembuatan int,
 		kpknl string,
 		provinsi string,
+		tahap int,
 	) ([]entity.Lelang, error)
 	FindDataLelangByKode(kode string) (*entity.Lelang, error)
+	InsertRiwayatKertasKerja(kk *entity.KertasKerja) error
 }

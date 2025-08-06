@@ -5,6 +5,7 @@ import (
 	"kertas_kerja/dto"
 	"kertas_kerja/middleware"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,12 +23,22 @@ func (k *kertasKerjaController) initService(service *contract.Service) {
 }
 
 func (k *kertasKerjaController) initRoute(app *gin.RouterGroup) {
-	app.POST("/", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataPembanding)
+	app.POST("/:tahap", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataPembanding)
 	app.GET("/lelang/:kode", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataLelangByKode)
 	app.POST("/save", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.SaveKertasKerjaToExcel)
 }
 
 func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {
+	tahapStr := ctx.Param("tahap")
+	tahap, err := strconv.Atoi(tahapStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "400",
+			"message": "Tahap harus berupa angka",
+			"error":   err.Error(),
+		})
+		return
+	}
 	var req dto.KertasKerjaRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -38,7 +49,7 @@ func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {
 		return
 	}
 
-	response, err := k.service.GetDataPembanding(&req)
+	response, err := k.service.GetDataPembanding(&req, tahap)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "500",

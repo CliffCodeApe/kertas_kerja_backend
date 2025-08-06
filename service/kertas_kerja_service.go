@@ -21,7 +21,7 @@ func implKertasKerjaService(repo *contract.Repository) contract.KertasKerjaServi
 	}
 }
 
-func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.KertasKerjaResponse, error) {
+func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest, tahap int) (*dto.KertasKerjaResponse, error) {
 	// Konversi tahun dan kategori lokasi ke tipe data yang sesuai
 	kategoriLokasi, _ := strconv.Atoi(req.KategoriLokasi)
 	lokasiBersih := strings.TrimPrefix(strings.TrimSpace(req.LokasiObjek), "KPKNL ")
@@ -33,6 +33,7 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 		req.TahunPembuatan,
 		req.LokasiObjek,
 		req.Provinsi,
+		tahap,
 	)
 	if err != nil {
 		return &dto.KertasKerjaResponse{
@@ -82,21 +83,45 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 		DataPembanding: pembandingList,
 	}
 
-	// err = IsiDataInputKeExcel(&result.InputLelang, &pembandingList) // Ambil data pembanding pertama untuk mengisi Excel
-	// if err != nil {
-	// 	return &dto.KertasKerjaResponse{
-	// 		Status:  "500",
-	// 		Message: "Gagal mengisi data ke Excel",
-	// 		Data:    dto.KertasKerjaData{},
-	// 	}, err
-	// }
-
 	return &dto.KertasKerjaResponse{
 		Status:  "200",
 		Message: "Berhasil mendapatkan data pembanding",
 		Data:    result,
 	}, nil
 }
+
+func (s *kertasKerjaServ) SaveKertasKerjaToExcel(input *dto.KertasKerjaRequest, pembandingList *[]dto.DataPembanding) error {
+	return IsiDataInputKeExcel(input, pembandingList)
+}
+
+func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error) {
+	lelang, err := s.kertasKerjarRepo.FindDataLelangByKode(kode)
+	if err != nil {
+		return nil, err
+	}
+
+	kategoriLokasi := GetKategoriLokasi(lelang.Kpknl)
+	lokasiBersih := strings.TrimPrefix(strings.TrimSpace(lelang.Kpknl), "KPKNL ")
+
+	return &dto.DataPembandingResponse{
+		Status:  "200",
+		Message: "Berhasil mendapatkan data lelang",
+		Data: dto.DataPembanding{
+			KodeLelang:     lelang.Kode,
+			Merek:          lelang.Merek,
+			Tipe:           lelang.Tipe,
+			TahunPembuatan: lelang.TahunPembuatan,
+			TahunTransaksi: lelang.TahunLelang,
+			Lokasi:         lokasiBersih,
+			KategoriLokasi: kategoriLokasi,
+			HargaLelang:    float64(lelang.HargaLaku),
+		},
+	}, nil
+}
+
+// func (s *kertasKerjaServ) InsertRiwayatKertasKerja(payload *dto.RiwayatKertasKerjaRequest) (*dto.RiwayatKertasKerjaResponse, error) {
+
+// }
 
 func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.DataPembanding) (err error) {
 	f, err := excelize.OpenFile("assets/template/Kertas_Kerja_template.xlsx")
@@ -178,7 +203,7 @@ func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.Da
 		}
 	}
 
-	savePath := "assets/kertas_kerja/Kertas_Kerja_" + time.Now().Format("02_01_2006") + ".xlsx"
+	savePath := "assets/kertas_kerja/Kertas_Kerja_" + input.NamaObjek + "_" + input.NUP + "_" + time.Now().Format("02_01_2006_15_04_05") + ".xlsx"
 	// Simpan file hasil
 	f.SaveAs(savePath)
 
@@ -233,35 +258,6 @@ func GetKategoriLokasi(rawLokasi string) int {
 		}
 	}
 	return 0 // Tidak terklasifikasi
-}
-
-func (s *kertasKerjaServ) SaveKertasKerjaToExcel(input *dto.KertasKerjaRequest, pembandingList *[]dto.DataPembanding) error {
-	return IsiDataInputKeExcel(input, pembandingList)
-}
-
-func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error) {
-	lelang, err := s.kertasKerjarRepo.FindDataLelangByKode(kode)
-	if err != nil {
-		return nil, err
-	}
-
-	kategoriLokasi := GetKategoriLokasi(lelang.Kpknl)
-	lokasiBersih := strings.TrimPrefix(strings.TrimSpace(lelang.Kpknl), "KPKNL ")
-
-	return &dto.DataPembandingResponse{
-		Status:  "200",
-		Message: "Berhasil mendapatkan data lelang",
-		Data: dto.DataPembanding{
-			KodeLelang:     lelang.Kode,
-			Merek:          lelang.Merek,
-			Tipe:           lelang.Tipe,
-			TahunPembuatan: lelang.TahunPembuatan,
-			TahunTransaksi: lelang.TahunLelang,
-			Lokasi:         lokasiBersih,
-			KategoriLokasi: kategoriLokasi,
-			HargaLelang:    float64(lelang.HargaLaku),
-		},
-	}, nil
 }
 
 func ConvertExcelToPDF(excelPath, pdfDir string) error {

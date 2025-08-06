@@ -8,7 +8,7 @@ type Service struct {
 }
 
 type KertasKerjaService interface {
-	GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.KertasKerjaResponse, error)
+	GetDataPembanding(req *dto.KertasKerjaRequest, tahap int) (*dto.KertasKerjaResponse, error)
 	GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error)
 	SaveKertasKerjaToExcel(input *dto.KertasKerjaRequest, pembandingList *[]dto.DataPembanding) error
 }

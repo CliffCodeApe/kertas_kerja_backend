@@ -58,3 +58,21 @@ type DataPembandingResponse struct {
 	Message string         `json:"message"`
 	Data    DataPembanding `json:"data"`
 }
+
+type RiwayatKertasKerjaRequest struct {
+	UserID    uint64 `json:"user_id"`
+	NamaObjek string `json:"nama_objek"`
+	PdfPath   string `json:"pdf_path"`
+}
+
+type RiwayatKertasKerjaResponse struct {
+	Status  string                 `json:"status_code"`
+	Message string                 `json:"message"`
+	Data    RiwayatKertasKerjaData `json:"data"`
+}
+
+type RiwayatKertasKerjaData struct {
+	UserID    uint64 `json:"user_id"`
+	NamaObjek string `json:"nama_objek"`
+	PdfPath   string `json:"pdf_path"`
+}

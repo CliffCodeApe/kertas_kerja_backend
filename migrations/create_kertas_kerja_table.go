@@ -21,9 +21,13 @@ func (m *createKertasKerjaTable) Up(conn *sql.Tx) error {
 	_, err := conn.Exec(`
 	CREATE TABLE kertas_kerja (
 		id                  serial PRIMARY KEY,
+		user_id				bigint NOT NULL,
 		nama_objek			varchar(100),
+		pdf_path			text,
 		created_at			TIMESTAMP NOT NULL DEFAULT NOW(),
-		updated_at			TIMESTAMP NOT NULL DEFAULT NOW()
+		updated_at			TIMESTAMP NOT NULL DEFAULT NOW(),
+
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 	)`)
 
 	if err != nil {
