@@ -12,6 +12,9 @@ type Repository struct {
 type UserRepository interface {
 	GetByNamaSatker(namaSatker string) (*entity.User, error)
 	GetById(id uint64) (*entity.User, error)
+	GetUsers() ([]*entity.User, error)
+	ValidateUser(userID uint64) error
+	InsertUser(user *entity.User) error
 }
 
 type KertasKerjaRepository interface {

@@ -23,7 +23,8 @@ var (
 
 	// Auth errors
 	ErrUserNotAuthorized = NewUnauthorizedError("Anda tidak bisa mengakses halaman ini")
-	ErrUserNotVerified   = NewUnauthorizedError("Akun belum diverifikasi. Silakan lakukan verifikasi email anda")
+	ErrUserNotVerified   = NewUnauthorizedError("Akun belum divalidasi. Silakan hubungi Super Admin untuk memvalidasi akun anda")
+	ErrUserAlreadyExists = NewBadRequest("User sudah terdaftar")
 	// User Errors
 	ErrUserNotFound = NewNotFoundError("User ini tidak ditemukan")
 

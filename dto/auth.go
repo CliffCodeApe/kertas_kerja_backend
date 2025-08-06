@@ -1,7 +1,5 @@
 package dto
 
-import "time"
-
 type AuthLoginRequest struct {
 	NamaSatker string `json:"nama_satker"`
 	Password   string `json:"password"`
@@ -25,11 +23,10 @@ type RefreshTokenResponse struct {
 }
 
 type AuthRegisterRequest struct {
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Nim       string    `json:"nim"`
-	Password  string    `json:"password"`
-	CreatedAt time.Time `json:"createdAt"`
+	NamaSatker string `json:"nama_satker"`
+	KodeKL     string `json:"kode_kl"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
 }
 
 type AuthRegisterResponse struct {
@@ -39,26 +36,31 @@ type AuthRegisterResponse struct {
 }
 
 type RegisterResponse struct {
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Nim       string    `json:"nim"`
-	CreatedAt time.Time `json:"createdAt"`
+	NamaSatker string `json:"nama_satker"`
+	KodeKL     string `json:"kode_kl"`
+	Email      string `json:"email"`
 }
 
 type EmailRequest struct {
 	Email string `json:"email"`
 }
 
-type ResetPasswordResponse struct {
+type ValidateUserResponse struct {
 	StatusCode int    `json:"status"`
 	Message    string `json:"message"`
 }
 
-type NewPassword struct {
-	NewPassword string `json:"new_password"`
+type GetUserResponse struct {
+	StatusCode int        `json:"status"`
+	Message    string     `json:"message"`
+	Data       []UserData `json:"data"`
 }
 
-type EmailVerificationResponse struct {
-	StatusCode int    `json:"status"`
-	Message    string `json:"message"`
+type UserData struct {
+	ID         uint64 `json:"id"`
+	NamaSatker string `json:"nama_satker"`
+	Email      string `json:"email"`
+	KodeKL     string `json:"kode_kl"`
+	Role       string `json:"role"`
+	IsVerified bool   `json:"is_verified"`
 }

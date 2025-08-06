@@ -23,8 +23,24 @@ func (a *authController) initService(service *contract.Service) {
 }
 
 func (a *authController) initRoute(app *gin.RouterGroup) {
+	app.POST("/register", a.Register)
 	app.POST("/login", a.Login)
 	app.GET("/refreshToken", a.RefreshToken)
+}
+
+func (a *authController) Register(ctx *gin.Context) {
+	var payload dto.AuthRegisterRequest
+	if err := ctx.ShouldBindBodyWithJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errs.ErrRequestBody)
+		return
+	}
+
+	result, err := a.service.Register(&payload)
+	if err != nil {
+		handlerError(ctx, err)
+		return
+	}
+	ctx.JSON(result.StatusCode, result)
 }
 
 func (a *authController) Login(ctx *gin.Context) {

@@ -27,6 +27,7 @@ func New(app *gin.Engine, service *contract.Service) {
 	allController := []controller{
 		&kertasKerjaController{},
 		&authController{},
+		&userController{},
 	}
 
 	// do not modify the code below there

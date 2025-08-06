@@ -35,3 +35,18 @@ func (u *userRepo) GetById(id uint64) (*entity.User, error) {
 
 	return &user, err
 }
+
+func (u *userRepo) GetUsers() ([]*entity.User, error) {
+	var users []*entity.User
+	err := u.db.Table("users").Find(&users).Error
+	return users, err
+}
+
+func (u *userRepo) ValidateUser(userID uint64) error {
+	return u.db.Table("users").Where("id = ?", userID).Update("is_verified", true).Error
+}
+
+func (u *userRepo) InsertUser(user *entity.User) error {
+	err := u.db.Table("users").Create(&user).Error
+	return err
+}

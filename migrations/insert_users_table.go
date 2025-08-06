@@ -24,10 +24,13 @@ func (m *insertUsersTable) Up(conn *sql.Tx) error {
 		kode_kl,
 		email,
 		role,
-		password
+		password,
+		is_verified
 	) VALUES
-	('John Doe', '015', 'panitia@example.com', 'panitia', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm'),
-	('Jane Doe', '015', 'admin@example.com', 'admin', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm')`)
+	('John Doe', '015', 'panitia@example.com', 'panitia', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'true'),
+	('Jane Doe', '015', 'admin@example.com', 'admin', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'true'),
+	('James Doe', '015', 'superadmin@example.com', 'superadmin', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'true')
+	`)
 
 	if err != nil {
 		return err

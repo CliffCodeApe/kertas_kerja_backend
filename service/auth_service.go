@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kertas_kerja/contract"
 	"kertas_kerja/dto"
+	"kertas_kerja/entity"
 	"kertas_kerja/pkg/bcrypt"
 	"kertas_kerja/pkg/errs"
 	token2 "kertas_kerja/pkg/token"
@@ -20,6 +21,46 @@ func implAuthService(repo *contract.Repository) contract.AuthService {
 	}
 }
 
+func (a *authServ) Register(payload *dto.AuthRegisterRequest) (*dto.AuthRegisterResponse, error) {
+	// Check if user already exists
+	existingUser, err := a.userRepo.GetByNamaSatker(payload.NamaSatker)
+	if err == nil && existingUser != nil {
+		return nil, errs.ErrUserAlreadyExists
+	}
+
+	// Hash the password
+	hashedPassword, err := bcrypt.Generate(payload.Password)
+	if err != nil {
+		return nil, fmt.Errorf("bcrypt.Hash fail: %w", err)
+	}
+
+	// Create user DTO
+	newUser := entity.User{
+		Email:      payload.Email,
+		NamaSatker: payload.NamaSatker,
+		KodeKL:     payload.KodeKL,
+		Password:   hashedPassword,
+	}
+
+	// Save user
+	err = a.userRepo.InsertUser(&newUser)
+	if err != nil {
+		return nil, fmt.Errorf("userRepo.Create fail: %w", err)
+	}
+
+	response := &dto.AuthRegisterResponse{
+		StatusCode: http.StatusCreated,
+		Message:    "User registered successfully",
+		Data: dto.RegisterResponse{
+			Email:      newUser.Email,
+			NamaSatker: newUser.NamaSatker,
+			KodeKL:     newUser.KodeKL,
+		},
+	}
+
+	return response, nil
+}
+
 func (a *authServ) Login(payload *dto.AuthLoginRequest) (*dto.AuthLoginResponse, error) {
 	var response *dto.AuthLoginResponse
 	// var loginErr error
@@ -27,6 +68,10 @@ func (a *authServ) Login(payload *dto.AuthLoginRequest) (*dto.AuthLoginResponse,
 	user, err := a.userRepo.GetByNamaSatker(payload.NamaSatker)
 	if err != nil {
 		return nil, errs.ErrLoginFailed
+	}
+
+	if !user.IsVerified {
+		return nil, errs.ErrUserNotVerified
 	}
 
 	verify := bcrypt.Verify(user.Password, payload.Password)
