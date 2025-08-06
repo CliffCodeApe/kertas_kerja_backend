@@ -48,7 +48,7 @@ func (a *userServ) ValidateUser(userID uint64) (*dto.ValidateUserResponse, error
 
 	a.mailService.Enqueue(entity.Mail{
 		To:      user.Email,
-		Subject: "Validasi Satker",
+		Subject: "Validasi User",
 		Body:    fmt.Sprintf("User anda sudah diverifikasi oleh Super Admin, silahkan login. Terima Kasih"),
 	})
 
