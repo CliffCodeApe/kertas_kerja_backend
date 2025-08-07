@@ -61,6 +61,7 @@ func Run() {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORSMiddleware())
+	r.Static("/assets", "./assets")
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),

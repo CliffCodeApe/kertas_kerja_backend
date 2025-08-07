@@ -1,9 +1,13 @@
 package service
 
 import (
+	"fmt"
 	"kertas_kerja/contract"
 	"kertas_kerja/dto"
+	"kertas_kerja/entity"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -90,10 +94,6 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest, tahap i
 	}, nil
 }
 
-func (s *kertasKerjaServ) SaveKertasKerjaToExcel(input *dto.KertasKerjaRequest, pembandingList *[]dto.DataPembanding) error {
-	return IsiDataInputKeExcel(input, pembandingList)
-}
-
 func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error) {
 	lelang, err := s.kertasKerjarRepo.FindDataLelangByKode(kode)
 	if err != nil {
@@ -119,14 +119,51 @@ func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingR
 	}, nil
 }
 
-// func (s *kertasKerjaServ) InsertRiwayatKertasKerja(payload *dto.RiwayatKertasKerjaRequest) (*dto.RiwayatKertasKerjaResponse, error) {
+func (s *kertasKerjaServ) SaveKertasKerja(input *dto.KertasKerjaRequest, pembandingList *[]dto.DataPembanding) (excelPath string, err error) {
 
-// }
+	excelPath, err = IsiDataLelangKeExcel(input, pembandingList)
+	if err != nil {
+		return "", err
+	}
 
-func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.DataPembanding) (err error) {
+	return excelPath, nil
+}
+
+func (s *kertasKerjaServ) InsertRiwayatKertasKerja(payload *dto.RiwayatKertasKerjaRequest) (*dto.RiwayatKertasKerjaResponse, error) {
+
+	pdfPath, err := ConvertExcelToPDF(payload.ExcelPath)
+	if err != nil {
+		return nil, fmt.Errorf("gagal konversi ke PDF: %w", err)
+	}
+
+	riwayat := &entity.KertasKerja{
+		UserID:    payload.UserID,
+		NamaObjek: payload.NamaObjek,
+		PdfPath:   pdfPath,
+	}
+
+	err = s.kertasKerjarRepo.InsertRiwayatKertasKerja(riwayat)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &dto.RiwayatKertasKerjaResponse{
+		Status:  "200",
+		Message: "Berhasil menyimpan riwayat kertas kerja",
+		Data: dto.RiwayatKertasKerjaData{
+			UserID:    riwayat.UserID,
+			NamaObjek: riwayat.NamaObjek,
+			PdfPath:   riwayat.PdfPath,
+		},
+	}
+
+	return response, nil
+}
+
+func IsiDataLelangKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.DataPembanding) (savePath string, err error) {
 	f, err := excelize.OpenFile("assets/template/Kertas_Kerja_template.xlsx")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	sheet := "Simulasi Di Jawa" // misal: Sheet1
@@ -203,19 +240,30 @@ func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.Da
 		}
 	}
 
-	savePath := "assets/kertas_kerja/Kertas_Kerja_" + input.NamaObjek + "_" + input.NUP + "_" + time.Now().Format("02_01_2006_15_04_05") + ".xlsx"
+	savePath = "assets/kertas_kerja/Kertas_Kerja_" + input.NamaObjek + "_" + input.NUP + "_" + time.Now().Format("02_01_2006_15_04_05") + ".xlsx"
 	// Simpan file hasil
 	f.SaveAs(savePath)
 
-	excelFilename := "Kertas_Kerja_" + time.Now().Format("02_01_2006") + ".xlsx"
-	excelPath := "assets/kertas_kerja/" + excelFilename
-	pdfDir := "assets/kertas_kerja/"
-	err = ConvertExcelToPDF(excelPath, pdfDir)
-	if err != nil {
-		return err
+	return savePath, err
+}
+
+func ConvertExcelToPDF(excelPath string) (pdfPath string, err error) {
+
+	pdfDir := "assets/kertas_kerja/pdf"
+	if err := os.MkdirAll(pdfDir, 0755); err != nil {
+		return "", err
 	}
 
-	return nil
+	cmd := exec.Command("libreoffice", "--headless", "--convert-to", "pdf", excelPath, "--outdir", pdfDir)
+	err = cmd.Run()
+	if err != nil {
+		return "", err
+	}
+
+	baseURL := os.Getenv("BASE_URL")
+	pdfPath = filepath.Join(pdfDir, strings.ReplaceAll(filepath.Base(excelPath), ".xlsx", ".pdf"))
+	pdfPath = baseURL + "/" + pdfPath
+	return pdfPath, nil
 }
 
 // Daftar lokasi per kategori
@@ -258,9 +306,4 @@ func GetKategoriLokasi(rawLokasi string) int {
 		}
 	}
 	return 0 // Tidak terklasifikasi
-}
-
-func ConvertExcelToPDF(excelPath, pdfDir string) error {
-	cmd := exec.Command("libreoffice", "--headless", "--convert-to", "pdf", excelPath, "--outdir", pdfDir)
-	return cmd.Run()
 }

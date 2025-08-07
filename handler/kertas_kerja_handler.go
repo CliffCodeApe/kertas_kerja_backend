@@ -26,6 +26,7 @@ func (k *kertasKerjaController) initRoute(app *gin.RouterGroup) {
 	app.POST("/:tahap", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataPembanding)
 	app.GET("/lelang/:kode", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataLelangByKode)
 	app.POST("/save", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.SaveKertasKerjaToExcel)
+	app.POST("/", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.InsertRiwayatKertasKerja)
 }
 
 func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {
@@ -51,11 +52,7 @@ func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {
 
 	response, err := k.service.GetDataPembanding(&req, tahap)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "500",
-			"message": "Gagal mencari data pembanding",
-			"error":   err.Error(),
-		})
+		handlerError(ctx, err)
 		return
 	}
 
@@ -74,14 +71,9 @@ func (k *kertasKerjaController) GetDataLelangByKode(ctx *gin.Context) {
 
 	response, err := k.service.GetDataLelangByKode(kode)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "500",
-			"message": "Gagal mendapatkan data lelang",
-			"error":   err.Error(),
-		})
+		handlerError(ctx, err)
 		return
 	}
-
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -92,11 +84,32 @@ func (k *kertasKerjaController) SaveKertasKerjaToExcel(ctx *gin.Context) {
 		return
 	}
 
-	err := k.service.SaveKertasKerjaToExcel(&req.InputLelang, &req.DataPembanding)
+	response, err := k.service.SaveKertasKerja(&req.InputLelang, &req.DataPembanding)
 	if err != nil {
-		ctx.JSON(500, gin.H{"error": "Gagal simpan ke Excel"})
+		handlerError(ctx, err)
 		return
 	}
 
-	ctx.JSON(200, gin.H{"message": "Berhasil simpan ke Excel"})
+	ctx.JSON(http.StatusOK, response)
+
+}
+
+func (k *kertasKerjaController) InsertRiwayatKertasKerja(ctx *gin.Context) {
+	var req dto.RiwayatKertasKerjaRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "400",
+			"message": "Invalid request",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	response, err := k.service.InsertRiwayatKertasKerja(&req)
+	if err != nil {
+		handlerError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }

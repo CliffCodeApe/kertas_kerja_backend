@@ -62,7 +62,7 @@ type DataPembandingResponse struct {
 type RiwayatKertasKerjaRequest struct {
 	UserID    uint64 `json:"user_id"`
 	NamaObjek string `json:"nama_objek"`
-	PdfPath   string `json:"pdf_path"`
+	ExcelPath string `json:"excel_path"`
 }
 
 type RiwayatKertasKerjaResponse struct {
