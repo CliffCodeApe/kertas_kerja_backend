@@ -13,10 +13,14 @@ type Service struct {
 }
 
 type KertasKerjaService interface {
-	GetDataPembanding(req *dto.KertasKerjaRequest, tahap int) (*dto.KertasKerjaResponse, error)
+	GetDataPembanding(req *dto.IdentitasKendaraan, tahap int) (*dto.KertasKerjaResponse, error)
 	GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error)
-	SaveKertasKerja(input *dto.KertasKerjaRequest, pembandingList *[]dto.DataPembanding) (excelPath string, err error)
-	InsertRiwayatKertasKerja(payload *dto.RiwayatKertasKerjaRequest) (*dto.RiwayatKertasKerjaResponse, error)
+	GetAllRiwayatKertasKerja() (*dto.GetAllRiwayatKertasKerjaResponse, error)
+	GetRiwayatKertasKerjaByUserID(userID uint64) (*dto.GetAllRiwayatKertasKerjaResponse, error)
+	GetRiwayatKertasKerjaByID(id uint64) (*dto.RiwayatKertasKerjaData, error)
+	SaveKertasKerja(payload *dto.IsiKertasKerjaRequest, userID uint64) (*dto.RiwayatKertasKerjaResponse, error)
+	DeleteRiwayatKertasKerja(id uint64) (*dto.DeleteRiwayatKertasKerjaResponse, error)
+	ValidasiKertasKerja(id uint64, pdfPath string) (*dto.ValidasiKertasKerjaResponse, error)
 }
 
 type AuthService interface {

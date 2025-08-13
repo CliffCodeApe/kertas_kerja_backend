@@ -28,7 +28,7 @@ func MiddlewareSuperAdmin(ctx *gin.Context) {
 	}
 
 	if u.Role != "superadmin" {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "Access denied: user only"})
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Access denied: Super Admin only"})
 		ctx.Abort()
 		return
 	}

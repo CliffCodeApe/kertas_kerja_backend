@@ -24,6 +24,7 @@ func (m *createKertasKerjaTable) Up(conn *sql.Tx) error {
 		user_id				bigint NOT NULL,
 		nama_objek			varchar(100),
 		pdf_path			text,
+		excel_path			text,
 		is_verified	boolean NOT NULL DEFAULT false,
 		created_at			TIMESTAMP NOT NULL DEFAULT NOW(),
 		updated_at			TIMESTAMP NOT NULL DEFAULT NOW(),

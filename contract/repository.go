@@ -27,5 +27,10 @@ type KertasKerjaRepository interface {
 		tahap int,
 	) ([]entity.Lelang, error)
 	FindDataLelangByKode(kode string) (*entity.Lelang, error)
+	GetAllRiwayatKertasKerja() ([]*entity.KertasKerja, error)
+	GetRiwayatKertasKerjaByID(id uint64) (entity.KertasKerja, error)
+	GetRiwayatKertasKerjaByUserID(userID uint64) ([]*entity.KertasKerja, error)
 	InsertRiwayatKertasKerja(kk *entity.KertasKerja) error
+	DeleteRiwayatKertasKerja(id uint64) error
+	ValidasiKertasKerja(id uint64, pdfPath string) error
 }
