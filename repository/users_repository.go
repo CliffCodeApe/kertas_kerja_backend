@@ -38,7 +38,7 @@ func (u *userRepo) GetById(id uint64) (*entity.User, error) {
 
 func (u *userRepo) GetUsers() ([]*entity.User, error) {
 	var users []*entity.User
-	err := u.db.Table("users").Find(&users).Error
+	err := u.db.Table("users").Select("id, nama_satker, is_verified, created_at, updated_at").Find(&users).Error
 	return users, err
 }
 
