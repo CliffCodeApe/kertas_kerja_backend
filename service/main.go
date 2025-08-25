@@ -26,6 +26,7 @@ func New(repo *contract.Repository) *contract.Service {
 		KertasKerja: implKertasKerjaService(repo),
 		Auth:        implAuthService(repo),
 		User:        implUserService(repo),
+		DataLelang:  implDataLelangService(repo),
 		Mail:        mailService,
 	}
 }

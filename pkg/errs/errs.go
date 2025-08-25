@@ -32,6 +32,7 @@ var (
 	ErrNamaSatkerNotFound = NewNotFoundError("Nama Satker tidak ditemukan")
 	ErrLoginFailed        = NewNotFoundError("Nama Satker atau password tidak ditemukan")
 	ErrDecryptFailed      = NewNotFoundError("Dekripsi password gagal")
+	ErrForbidden          = NewForbiddenError("Permintaan tidak diizinkan")
 
 	// Data Lelang Errors
 	ErrDataLelangNotFound = NewNotFoundError("Data lelang tidak ditemukan")
@@ -102,5 +103,13 @@ func NewTooManyRequestsError(message string) MessageErr {
 		ErrStatus:  http.StatusTooManyRequests,
 		ErrMessage: message,
 		ErrError:   "TOO_MANY_REQUEST",
+	}
+}
+
+func NewForbiddenError(message string) MessageErr {
+	return &ErrorData{
+		ErrStatus:  http.StatusForbidden,
+		ErrMessage: message,
+		ErrError:   "FORBIDDEN",
 	}
 }

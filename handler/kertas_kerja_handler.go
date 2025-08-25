@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,13 +30,16 @@ func (k *kertasKerjaController) initService(service *contract.Service) {
 }
 
 func (k *kertasKerjaController) initRoute(app *gin.RouterGroup) {
-	app.GET("/all", middleware.MiddlewareLogin, middleware.MiddlewareSuperAdmin, k.GetAllRiwayatKertasKerja)
+	// Admin
+	app.GET("/all", middleware.MiddlewareLogin, middleware.MiddlewareAdmin, k.GetAllRiwayatKertasKerja)
+	app.PATCH("/validasi/:id", middleware.MiddlewareLogin, middleware.MiddlewareAdmin, k.ValidasiKertasKerja)
+
+	// Satker
 	app.GET("/", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetRiwayatKertasKerjaByUserID)
 	app.POST("/:tahap", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataPembanding)
 	app.GET("/lelang/:kode", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.GetDataLelangByKode)
 	app.POST("/", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.SaveKertasKerja)
 	app.DELETE("/:id", middleware.MiddlewareLogin, middleware.MiddlewareUser, k.DeleteRiwayatKertasKerja)
-	app.POST("/validasi/:id", middleware.MiddlewareLogin, middleware.MiddlewareAdmin, k.ValidasiKertasKerja)
 }
 
 func (k *kertasKerjaController) GetDataPembanding(ctx *gin.Context) {
@@ -175,29 +180,43 @@ func (k *kertasKerjaController) ValidasiKertasKerja(ctx *gin.Context) {
 		return
 	}
 
-	// Ambil data riwayat untuk dapatkan nama file PDF lama
 	riwayat, err := k.service.GetRiwayatKertasKerjaByID(id)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Data kertas kerja tidak ditemukan"})
 		return
 	}
 
-	// Ambil nama file lama
-	oldPdfPath := riwayat.PdfPath            // contoh: http://localhost:8080/assets/kertas_kerja/pdf/Kertas_Kerja_Yamaha_123456_10_08_2025_19_05_53.pdf
-	oldFileName := filepath.Base(oldPdfPath) // Kertas_Kerja_Yamaha_123456_10_08_2025_19_05_53.pdf
+	oldPdfPath := riwayat.PdfPath
+	oldFileName := filepath.Base(oldPdfPath)
 
-	// Tambahkan "validasi" sebelum .pdf
 	ext := filepath.Ext(oldFileName) // .pdf
 	nameOnly := strings.TrimSuffix(oldFileName, ext)
-	newFileName := nameOnly + "_validasi" + ext // Kertas_Kerja_Yamaha_123456_10_08_2025_19_05_53_validasi.pdf
 
+	// Cari dan ganti bagian datetime di nama file
+	// Pola: _dd_mm_yyyy_hh_mm_ss atau _validasi.pdf
+	// Contoh: Kertas_Kerja_Yamaha_123456_10_08_2025_19_05_53.pdf
+	// atau:   Kertas_Kerja_Yamaha_123456_10_08_2025_19_05_53_validasi.pdf
+
+	// Regex untuk datetime: _dd_mm_yyyy_hh_mm_ss
+	re := regexp.MustCompile(`_\d{2}_\d{2}_\d{4}_\d{2}_\d{2}_\d{2}`)
+	nowStr := "_" + time.Now().Format("02_01_2006_15_04_05")
+
+	// Hilangkan datetime lama
+	nameOnly = re.ReplaceAllString(nameOnly, nowStr)
+
+	// Pastikan ada "_validasi" di akhir nama (sebelum .pdf)
+	if !strings.HasSuffix(nameOnly, "_validasi") {
+		nameOnly += "_validasi"
+	}
+
+	newFileName := nameOnly + ext
 	savePath := "assets/kertas_kerja/pdf/" + newFileName
+
 	if err := ctx.SaveUploadedFile(file, savePath); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan file"})
 		return
 	}
 
-	// Update status validasi di service
 	baseURL := os.Getenv("BASE_URL")
 	pdfURL := baseURL + "/" + savePath
 	resp, err := k.service.ValidasiKertasKerja(id, pdfURL)

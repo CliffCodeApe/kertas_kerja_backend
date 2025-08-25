@@ -27,7 +27,7 @@ func MiddlewareUser(ctx *gin.Context) {
 		return
 	}
 
-	if u.Role != "panitia" {
+	if u.Role != "satker" {
 		ctx.JSON(http.StatusForbidden, gin.H{"error": "Access denied: user only"})
 		ctx.Abort()
 		return

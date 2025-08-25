@@ -27,9 +27,9 @@ func (m *insertUsersTable) Up(conn *sql.Tx) error {
 		password,
 		is_verified
 	) VALUES
-	('John Doe', '016', 'panitia@example.com', 'panitia', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'true'),
-	('Jane Doe', '017', 'admin@example.com', 'admin', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'true'),
-	('James Doe', '069', 'superadmin@example.com', 'superadmin', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'true')
+	('John Doe', '016', 'panitia@example.com', 'satker', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'tervalidasi'),
+	('Jane Doe', '017', 'admin@example.com', 'admin', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'tervalidasi'),
+	('James Doe', '069', 'superadmin@example.com', 'superadmin', '$2a$12$iQlTqu3UViJztxiofh4z0eVUpsOG6rSxUy21CVacWEVlwzoEVcbWm', 'tervalidasi')
 	`)
 
 	if err != nil {

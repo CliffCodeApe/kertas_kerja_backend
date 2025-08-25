@@ -6,15 +6,17 @@ import (
 
 // KertasKerja represents the structure of the kertas kerja entity.
 type KertasKerja struct {
-	ID         uint64    `gorm:"column:id;primaryKey;autoIncrement;not null;<-create"`
-	UserID     uint64    `gorm:"user_id"`
-	NamaObjek  string    `gorm:"nama_objek"`
-	PdfPath    string    `gorm:"pdf_path"`
-	ExcelPath  string    `gorm:"excel_path"`
-	IsVerified bool      `gorm:"is_verified"`
-	KodeKL     string    `gorm:"-"`
-	CreatedAt  time.Time `gorm:"created_at"`
-	UpdatedAt  time.Time `gorm:"updated_at"`
+	ID                 uint64    `gorm:"column:id;primaryKey;autoIncrement;not null;<-create"`
+	UserID             uint64    `gorm:"user_id"`
+	KodeSatker         string    `gorm:"kode_satker"`
+	NamaObjek          string    `gorm:"nama_objek"`
+	NUP                string    `gorm:"nup"`
+	HasilNilaiTaksiran float64   `gorm:"hasil_nilai_taksiran"`
+	PdfPath            string    `gorm:"pdf_path"`
+	ExcelPath          string    `gorm:"excel_path"`
+	IsVerified         bool      `gorm:"is_verified"`
+	CreatedAt          time.Time `gorm:"created_at"`
+	UpdatedAt          time.Time `gorm:"updated_at"`
 }
 
 type Lelang struct {

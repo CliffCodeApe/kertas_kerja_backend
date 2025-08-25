@@ -70,7 +70,9 @@ func (a *authServ) Login(payload *dto.AuthLoginRequest) (*dto.AuthLoginResponse,
 		return nil, errs.ErrLoginFailed
 	}
 
-	if !user.IsVerified {
+	if user.IsVerified == "menunggu" {
+		return nil, errs.ErrUserNotVerified
+	} else if user.IsVerified == "ditolak" {
 		return nil, errs.ErrUserNotVerified
 	}
 

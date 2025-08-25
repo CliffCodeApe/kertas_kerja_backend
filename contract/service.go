@@ -10,6 +10,7 @@ type Service struct {
 	Auth        AuthService
 	User        UserService
 	Mail        MailService
+	DataLelang  DataLelangService
 }
 
 type KertasKerjaService interface {
@@ -32,6 +33,13 @@ type AuthService interface {
 type UserService interface {
 	ValidateUser(userID uint64) (*dto.ValidateUserResponse, error)
 	GetAllUsers() (*dto.GetUserResponse, error)
+	InValidateUser(userID uint64) (*dto.ValidateUserResponse, error)
+	DeleteUser(userID uint64) (*dto.DeleteUserResponse, error)
+	ChangeUserRole(payload *dto.ChangeUserRoleRequest, userID uint64) (*dto.ChangeUserRoleResponse, error)
+}
+
+type DataLelangService interface {
+	InsertDataLelang(payload *dto.DataLelang) (*dto.InsertDataLelangResponse, error)
 }
 
 type MailService interface {

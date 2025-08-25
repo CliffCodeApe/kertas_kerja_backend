@@ -50,6 +50,20 @@ type ValidateUserResponse struct {
 	Message    string `json:"message"`
 }
 
+type DeleteUserResponse struct {
+	StatusCode int    `json:"status"`
+	Message    string `json:"message"`
+}
+
+type ChangeUserRoleRequest struct {
+	Role string `json:"role"`
+}
+
+type ChangeUserRoleResponse struct {
+	StatusCode int    `json:"status"`
+	Message    string `json:"message"`
+}
+
 type GetUserResponse struct {
 	StatusCode int        `json:"status"`
 	Message    string     `json:"message"`
@@ -62,5 +76,5 @@ type UserData struct {
 	Email      string `json:"email"`
 	KodeKL     string `json:"kode_kl"`
 	Role       string `json:"role"`
-	IsVerified bool   `json:"is_verified"`
+	IsVerified string `json:"is_verified"`
 }

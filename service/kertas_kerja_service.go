@@ -18,11 +18,13 @@ import (
 
 type kertasKerjaServ struct {
 	kertasKerjarRepo contract.KertasKerjaRepository
+	userRepo         contract.UserRepository
 }
 
 func implKertasKerjaService(repo *contract.Repository) contract.KertasKerjaService {
 	return &kertasKerjaServ{
 		kertasKerjarRepo: repo.KertasKerja,
+		userRepo:         repo.User,
 	}
 }
 
@@ -129,11 +131,12 @@ func (s *kertasKerjaServ) GetAllRiwayatKertasKerja() (*dto.GetAllRiwayatKertasKe
 	var result []dto.RiwayatKertasKerjaData
 	for _, item := range riwayat {
 		result = append(result, dto.RiwayatKertasKerjaData{
-			ID:        item.ID,
-			UserID:    item.UserID,
-			NamaObjek: item.NamaObjek,
-			PdfPath:   item.PdfPath,
-			KodeKL:    item.KodeKL,
+			ID:                 item.ID,
+			KodeSatker:         item.KodeSatker,
+			NUP:                item.NUP,
+			HasilNilaiTaksiran: item.HasilNilaiTaksiran,
+			NamaObjek:          item.NamaObjek,
+			PdfPath:            item.PdfPath,
 		})
 	}
 
@@ -155,11 +158,12 @@ func (s *kertasKerjaServ) GetRiwayatKertasKerjaByUserID(userID uint64) (*dto.Get
 	var result []dto.RiwayatKertasKerjaData
 	for _, item := range riwayat {
 		result = append(result, dto.RiwayatKertasKerjaData{
-			ID:        item.ID,
-			UserID:    item.UserID,
-			NamaObjek: item.NamaObjek,
-			PdfPath:   item.PdfPath,
-			KodeKL:    item.KodeKL,
+			ID:                 item.ID,
+			KodeSatker:         item.KodeSatker,
+			NUP:                item.NUP,
+			HasilNilaiTaksiran: item.HasilNilaiTaksiran,
+			NamaObjek:          item.NamaObjek,
+			PdfPath:            item.PdfPath,
 		})
 	}
 
@@ -179,13 +183,14 @@ func (s *kertasKerjaServ) GetRiwayatKertasKerjaByID(id uint64) (*dto.RiwayatKert
 	}
 
 	result := &dto.RiwayatKertasKerjaData{
-		ID:         riwayat.ID,
-		UserID:     riwayat.UserID,
-		NamaObjek:  riwayat.NamaObjek,
-		PdfPath:    riwayat.PdfPath,
-		ExcelPath:  riwayat.ExcelPath,
-		IsVerified: riwayat.IsVerified,
-		KodeKL:     riwayat.KodeKL,
+		ID:                 riwayat.ID,
+		KodeSatker:         riwayat.KodeSatker,
+		NUP:                riwayat.NUP,
+		HasilNilaiTaksiran: riwayat.HasilNilaiTaksiran,
+		NamaObjek:          riwayat.NamaObjek,
+		PdfPath:            riwayat.PdfPath,
+		ExcelPath:          riwayat.ExcelPath,
+		IsVerified:         riwayat.IsVerified,
 	}
 
 	return result, nil
@@ -222,7 +227,16 @@ func removeFileFromURL(fileURL string) {
 	_ = os.Remove(filePath)                      // abaikan error jika file tidak ada
 }
 
+func FormatPercent(val float64) string {
+	return fmt.Sprintf("%.0f%%", val)
+}
+
 func (s *kertasKerjaServ) SaveKertasKerja(payload *dto.IsiKertasKerjaRequest, userID uint64) (*dto.RiwayatKertasKerjaResponse, error) {
+	user, err := s.userRepo.GetById(userID)
+	if err != nil {
+		return nil, fmt.Errorf("user tidak ditemukan: %w", err)
+	}
+
 	// Simpan ke Excel
 	excelPath, err := IsiDataLelangKeExcel(payload)
 	if err != nil {
@@ -237,10 +251,13 @@ func (s *kertasKerjaServ) SaveKertasKerja(payload *dto.IsiKertasKerjaRequest, us
 
 	// Simpan ke DB
 	riwayat := &entity.KertasKerja{
-		UserID:    userID,
-		NamaObjek: payload.InputLelang.NamaObjek,
-		PdfPath:   pdfPath,
-		ExcelPath: excelPath,
+		UserID:             user.ID,
+		NUP:                payload.InputLelang.NUP,
+		KodeSatker:         user.KodeKL,
+		HasilNilaiTaksiran: payload.HasilTaksiran.TotalNilaiTaksiran,
+		NamaObjek:          payload.InputLelang.NamaObjek,
+		PdfPath:            pdfPath,
+		ExcelPath:          excelPath,
 	}
 
 	err = s.kertasKerjarRepo.InsertRiwayatKertasKerja(riwayat)
@@ -252,7 +269,6 @@ func (s *kertasKerjaServ) SaveKertasKerja(payload *dto.IsiKertasKerjaRequest, us
 		Status:  "200",
 		Message: "Berhasil menyimpan riwayat kertas kerja",
 		Data: dto.RiwayatKertasKerjaData{
-			UserID:     riwayat.UserID,
 			NamaObjek:  riwayat.NamaObjek,
 			PdfPath:    riwayat.PdfPath,
 			ExcelPath:  riwayat.ExcelPath,
@@ -264,13 +280,21 @@ func (s *kertasKerjaServ) SaveKertasKerja(payload *dto.IsiKertasKerjaRequest, us
 }
 
 func (s *kertasKerjaServ) ValidasiKertasKerja(id uint64, pdfPath string) (*dto.ValidasiKertasKerjaResponse, error) {
-	err := s.kertasKerjarRepo.ValidasiKertasKerja(id, pdfPath)
+	// Hapus file PDF lama
+	riwayat, err := s.kertasKerjarRepo.GetRiwayatKertasKerjaByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("data riwayat tidak ditemukan: %w", err)
+	}
+	removeFileFromURL(riwayat.PdfPath)
+
+	// Update path PDF baru di database
+	err = s.kertasKerjarRepo.ValidasiKertasKerja(id, pdfPath)
 	if err != nil {
 		return nil, fmt.Errorf("gagal validasi kertas kerja: %w", err)
 	}
 	return &dto.ValidasiKertasKerjaResponse{
 		Status:  "200",
-		Message: "Kertas kerja berhasil divalidasi",
+		Message: "Kertas kerja berhasil divalidasi dan PDF telah diperbarui",
 	}, nil
 }
 
@@ -358,14 +382,14 @@ func IsiDataLelangKeExcel(data *dto.IsiKertasKerjaRequest) (savePath string, err
 	// Data Penyesuaian
 	if len(data.DataPenyesuaian) > 0 {
 		for i, penyesuaian := range data.DataPenyesuaian {
-			row := 39 + i // Mulai dari baris setelah data pembanding
+			row := 40 + i // Mulai dari baris setelah data pembanding
 			f.SetCellValue(sheet, "C"+strconv.Itoa(row), penyesuaian.DataHasilLelang)
-			f.SetCellValue(sheet, "E"+strconv.Itoa(row), penyesuaian.Tipe)
-			f.SetCellValue(sheet, "G"+strconv.Itoa(row), penyesuaian.Merek)
-			f.SetCellValue(sheet, "H"+strconv.Itoa(row), penyesuaian.Waktu)
-			f.SetCellValue(sheet, "J"+strconv.Itoa(row), penyesuaian.Lokasi)
-			f.SetCellValue(sheet, "K"+strconv.Itoa(row), penyesuaian.TahunPembuatan)
-			f.SetCellValue(sheet, "N"+strconv.Itoa(row), penyesuaian.Total)
+			f.SetCellValue(sheet, "E"+strconv.Itoa(row), FormatPercent(penyesuaian.Tipe))
+			f.SetCellValue(sheet, "G"+strconv.Itoa(row), FormatPercent(penyesuaian.Merek))
+			f.SetCellValue(sheet, "H"+strconv.Itoa(row), FormatPercent(penyesuaian.Waktu))
+			f.SetCellValue(sheet, "J"+strconv.Itoa(row), FormatPercent(penyesuaian.Lokasi))
+			f.SetCellValue(sheet, "K"+strconv.Itoa(row), FormatPercent(penyesuaian.TahunPembuatan))
+			f.SetCellValue(sheet, "N"+strconv.Itoa(row), FormatPercent(penyesuaian.Total))
 			f.SetCellValue(sheet, "P"+strconv.Itoa(row), penyesuaian.NilaiTaksiran)
 		}
 	}

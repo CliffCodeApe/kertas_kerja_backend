@@ -37,7 +37,7 @@ type IsiKertasKerjaRequest struct {
 	DataPembanding  []DataPembanding   `json:"data_pembanding"`
 	DataPenyesuaian []DataPenyesuaian  `json:"data_penyesuaian"`
 	HasilTaksiran   HasilTaksiran      `json:"hasil_taksiran"`
-	UserID          uint64             `json:"user_id"`
+	NUP             string             `json:"nup"`
 	FaktorKondisi   float64            `json:"faktor_kondisi"`
 }
 
@@ -61,11 +61,11 @@ type DataPembanding struct {
 
 type DataPenyesuaian struct {
 	DataHasilLelang string  `json:"data_hasil_lelang"`
-	Tipe            int     `json:"tipe"`
-	Merek           int     `json:"merek"`
-	Waktu           int     `json:"waktu"`
-	Lokasi          int     `json:"lokasi"`
-	TahunPembuatan  int     `json:"tahun_pembuatan"`
+	Tipe            float64 `json:"tipe"`
+	Merek           float64 `json:"merek"`
+	Waktu           float64 `json:"waktu"`
+	Lokasi          float64 `json:"lokasi"`
+	TahunPembuatan  float64 `json:"tahun_pembuatan"`
 	Total           float64 `json:"total"`
 	NilaiTaksiran   float64 `json:"nilai_taksiran"`
 }
@@ -101,13 +101,16 @@ type DeleteRiwayatKertasKerjaResponse struct {
 }
 
 type RiwayatKertasKerjaData struct {
-	ID         uint64 `json:"id"`
-	UserID     uint64 `json:"user_id"`
-	NamaObjek  string `json:"nama_objek"`
-	PdfPath    string `json:"pdf_path"`
-	ExcelPath  string `json:"excel_path"`
-	IsVerified bool   `json:"is_verified"`
-	KodeKL     string `json:"kode_kl"`
+	ID                 uint64  `json:"id"`
+	UserID             uint64  `json:"user_id,omitempty"`
+	KodeSatker         string  `json:"kode_satker"`
+	NUP                string  `json:"nup"`
+	HasilNilaiTaksiran float64 `json:"hasil_nilai_taksiran"`
+	NamaObjek          string  `json:"nama_objek"`
+	PdfPath            string  `json:"pdf_path"`
+	ExcelPath          string  `json:"excel_path"`
+	IsVerified         bool    `json:"is_verified"`
+	KodeKL             string  `json:"kode_kl"`
 }
 
 type ValidasiKertasKerjaResponse struct {

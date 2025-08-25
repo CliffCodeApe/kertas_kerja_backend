@@ -119,7 +119,8 @@ func (r *kertasKerjaRepo) GetRiwayatKertasKerjaByID(id uint64) (entity.KertasKer
 func (r *kertasKerjaRepo) GetAllRiwayatKertasKerja() ([]*entity.KertasKerja, error) {
 	var result []*entity.KertasKerja
 	err := r.db.Table("kertas_kerja AS k").
-		Select("k.id, k.nama_objek, k.excel_path, k.pdf_path, k.is_verified, k.created_at, k.updated_at, u.kode_kl").
+		Where("u.role = ?", "satker").
+		Select("k.id, k.nama_objek, k.nup, k.kode_satker, k.hasil_nilai_taksiran, k.excel_path, k.pdf_path, k.is_verified, k.created_at, k.updated_at").
 		Joins("JOIN users u ON u.id = k.user_id").
 		Find(&result).Error
 

@@ -28,6 +28,7 @@ func New(app *gin.Engine, service *contract.Service) {
 		&kertasKerjaController{},
 		&authController{},
 		&userController{},
+		&dataLelangController{},
 	}
 
 	// do not modify the code below there

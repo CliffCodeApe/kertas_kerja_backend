@@ -7,6 +7,7 @@ import (
 type Repository struct {
 	KertasKerja KertasKerjaRepository
 	User        UserRepository
+	DataLelang  DataLelangRepository
 }
 
 type UserRepository interface {
@@ -15,6 +16,9 @@ type UserRepository interface {
 	GetUsers() ([]*entity.User, error)
 	ValidateUser(userID uint64) error
 	InsertUser(user *entity.User) error
+	InValidateUser(userID uint64) error
+	DeleteUser(userID uint64) error
+	ChangeUserRole(userID uint64, role string) error
 }
 
 type KertasKerjaRepository interface {
@@ -33,4 +37,8 @@ type KertasKerjaRepository interface {
 	InsertRiwayatKertasKerja(kk *entity.KertasKerja) error
 	DeleteRiwayatKertasKerja(id uint64) error
 	ValidasiKertasKerja(id uint64, pdfPath string) error
+}
+
+type DataLelangRepository interface {
+	InsertDataLelang(dataLelang *entity.DataLelang) error
 }

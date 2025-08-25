@@ -7,9 +7,9 @@ type User struct {
 	NamaSatker string    `gorm:"nama_satker"`
 	KodeKL     string    `gorm:"kode_kl"`
 	Email      string    `gorm:"email"`
-	Role       string    `gorm:"column:role;default:'panitia'"`
+	Role       string    `gorm:"column:role;default:'satker'"`
 	Password   string    `gorm:"password"`
-	IsVerified bool      `gorm:"is_verified;default:false"`
+	IsVerified string    `gorm:"is_verified;default:menunggu"`
 	CreatedAt  time.Time `gorm:"created_at"`
 	UpdatedAt  time.Time `gorm:"updated_at"`
 }
