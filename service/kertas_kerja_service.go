@@ -1,8 +1,14 @@
 package service
 
 import (
+	"fmt"
 	"kertas_kerja/contract"
 	"kertas_kerja/dto"
+	"kertas_kerja/entity"
+	"kertas_kerja/pkg/errs"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -12,15 +18,17 @@ import (
 
 type kertasKerjaServ struct {
 	kertasKerjarRepo contract.KertasKerjaRepository
+	userRepo         contract.UserRepository
 }
 
 func implKertasKerjaService(repo *contract.Repository) contract.KertasKerjaService {
 	return &kertasKerjaServ{
 		kertasKerjarRepo: repo.KertasKerja,
+		userRepo:         repo.User,
 	}
 }
 
-func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.KertasKerjaResponse, error) {
+func (s *kertasKerjaServ) GetDataPembanding(req *dto.IdentitasKendaraan, tahap int) (*dto.KertasKerjaResponse, error) {
 	// Konversi tahun dan kategori lokasi ke tipe data yang sesuai
 	kategoriLokasi, _ := strconv.Atoi(req.KategoriLokasi)
 	lokasiBersih := strings.TrimPrefix(strings.TrimSpace(req.LokasiObjek), "KPKNL ")
@@ -31,7 +39,8 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 		req.TipeKendaraan,
 		req.TahunPembuatan,
 		req.LokasiObjek,
-		req.TahunLelang,
+		req.Provinsi,
+		tahap,
 	)
 	if err != nil {
 		return &dto.KertasKerjaResponse{
@@ -58,7 +67,7 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 	}
 
 	result := dto.KertasKerjaData{
-		InputLelang: dto.KertasKerjaRequest{
+		InputLelang: dto.IdentitasKendaraan{
 			NamaObjek:           req.NamaObjek,
 			LokasiObjek:         lokasiBersih,
 			NUP:                 req.NUP,
@@ -76,17 +85,9 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 			Warna:               req.Warna,
 			BahanBakar:          req.BahanBakar,
 			KondisiKendaraan:    req.KondisiKendaraan,
+			Provinsi:            req.Provinsi,
 		},
 		DataPembanding: pembandingList,
-	}
-
-	err = IsiDataInputKeExcel(&result.InputLelang, &pembandingList) // Ambil data pembanding pertama untuk mengisi Excel
-	if err != nil {
-		return &dto.KertasKerjaResponse{
-			Status:  "500",
-			Message: "Gagal mengisi data ke Excel",
-			Data:    dto.KertasKerjaData{},
-		}, err
 	}
 
 	return &dto.KertasKerjaResponse{
@@ -96,63 +97,265 @@ func (s *kertasKerjaServ) GetDataPembanding(req *dto.KertasKerjaRequest) (*dto.K
 	}, nil
 }
 
-func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.DataPembanding) (err error) {
-	f, err := excelize.OpenFile("assets/template/Kertas_Kerja_template.xlsx")
+func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error) {
+	lelang, err := s.kertasKerjarRepo.FindDataLelangByKode(kode)
 	if err != nil {
-		return err
+		return nil, errs.ErrDataLelangNotFound
 	}
 
-	sheet := "Simulasi Di Jawa" // misal: Sheet1
-	// fmt.Printf("Sheet: %s\n", sheet)
+	kategoriLokasi := GetKategoriLokasi(lelang.Kpknl)
+	lokasiBersih := strings.TrimPrefix(strings.TrimSpace(lelang.Kpknl), "KPKNL ")
 
-	// Isian berdasarkan posisi sel (sesuai contoh Excel di atas)
-	f.SetCellValue(sheet, "E11", input.NamaObjek)
-	f.SetCellValue(sheet, "K11", input.NUP)
+	return &dto.DataPembandingResponse{
+		Status:  "200",
+		Message: "Berhasil mendapatkan data lelang",
+		Data: dto.DataPembanding{
+			KodeLelang:     lelang.Kode,
+			Merek:          lelang.Merek,
+			Tipe:           lelang.Tipe,
+			TahunPembuatan: lelang.TahunPembuatan,
+			TahunTransaksi: lelang.TahunLelang,
+			Lokasi:         lokasiBersih,
+			KategoriLokasi: kategoriLokasi,
+			HargaLelang:    float64(lelang.HargaLaku),
+		},
+	}, nil
+}
 
-	f.SetCellValue(sheet, "E12", input.LokasiObjek)
-	f.SetCellValue(sheet, "K12", input.KategoriLokasi)
+func (s *kertasKerjaServ) GetAllRiwayatKertasKerja() (*dto.GetAllRiwayatKertasKerjaResponse, error) {
+	riwayat, err := s.kertasKerjarRepo.GetAllRiwayatKertasKerja()
+	if err != nil {
+		return nil, fmt.Errorf("gagal mendapatkan riwayat kertas kerja: %w", err)
+	}
 
-	switch input.JenisKendaraan {
+	var result []dto.RiwayatKertasKerjaData
+	for _, item := range riwayat {
+		result = append(result, dto.RiwayatKertasKerjaData{
+			ID:                 item.ID,
+			KodeSatker:         item.KodeSatker,
+			NUP:                item.NUP,
+			HasilNilaiTaksiran: item.HasilNilaiTaksiran,
+			NamaObjek:          item.NamaObjek,
+			PdfPath:            item.PdfPath,
+		})
+	}
+
+	response := &dto.GetAllRiwayatKertasKerjaResponse{
+		Status:  "200",
+		Message: "Berhasil mendapatkan riwayat kertas kerja",
+		Data:    result,
+	}
+
+	return response, nil
+}
+
+func (s *kertasKerjaServ) GetRiwayatKertasKerjaByUserID(userID uint64) (*dto.GetAllRiwayatKertasKerjaResponse, error) {
+	riwayat, err := s.kertasKerjarRepo.GetRiwayatKertasKerjaByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mendapatkan riwayat kertas kerja: %w", err)
+	}
+
+	var result []dto.RiwayatKertasKerjaData
+	for _, item := range riwayat {
+		result = append(result, dto.RiwayatKertasKerjaData{
+			ID:                 item.ID,
+			KodeSatker:         item.KodeSatker,
+			NUP:                item.NUP,
+			HasilNilaiTaksiran: item.HasilNilaiTaksiran,
+			NamaObjek:          item.NamaObjek,
+			PdfPath:            item.PdfPath,
+		})
+	}
+
+	response := &dto.GetAllRiwayatKertasKerjaResponse{
+		Status:  "200",
+		Message: "Berhasil mendapatkan riwayat kertas kerja",
+		Data:    result,
+	}
+
+	return response, nil
+}
+
+func (s *kertasKerjaServ) GetRiwayatKertasKerjaByID(id uint64) (*dto.RiwayatKertasKerjaData, error) {
+	riwayat, err := s.kertasKerjarRepo.GetRiwayatKertasKerjaByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("data riwayat tidak ditemukan: %w", err)
+	}
+
+	result := &dto.RiwayatKertasKerjaData{
+		ID:                 riwayat.ID,
+		KodeSatker:         riwayat.KodeSatker,
+		NUP:                riwayat.NUP,
+		HasilNilaiTaksiran: riwayat.HasilNilaiTaksiran,
+		NamaObjek:          riwayat.NamaObjek,
+		PdfPath:            riwayat.PdfPath,
+		ExcelPath:          riwayat.ExcelPath,
+		IsVerified:         riwayat.IsVerified,
+	}
+
+	return result, nil
+}
+
+func (s *kertasKerjaServ) DeleteRiwayatKertasKerja(id uint64) (*dto.DeleteRiwayatKertasKerjaResponse, error) {
+	riwayat, err := s.kertasKerjarRepo.GetRiwayatKertasKerjaByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("data riwayat tidak ditemukan: %w", err)
+	}
+
+	// 2. Hapus file PDF dan Excel (jika ada)
+	removeFileFromURL(riwayat.PdfPath)
+	removeFileFromURL(riwayat.ExcelPath)
+
+	// 3. Hapus data dari database
+	err = s.kertasKerjarRepo.DeleteRiwayatKertasKerja(id)
+	if err != nil {
+		return nil, fmt.Errorf("gagal menghapus riwayat kertas kerja: %w", err)
+	}
+
+	return &dto.DeleteRiwayatKertasKerjaResponse{
+		Status:  "200",
+		Message: "Berhasil menghapus riwayat kertas kerja",
+	}, nil
+}
+
+// Helper untuk menghapus file dari path URL
+func removeFileFromURL(fileURL string) {
+	// Hilangkan BASE_URL jika ada
+	baseURL := os.Getenv("BASE_URL")
+	filePath := strings.TrimPrefix(fileURL, baseURL)
+	filePath = strings.TrimPrefix(filePath, "/") // pastikan tidak ada slash di depan
+	_ = os.Remove(filePath)                      // abaikan error jika file tidak ada
+}
+
+func FormatPercent(val float64) string {
+	return fmt.Sprintf("%.0f%%", val)
+}
+
+func (s *kertasKerjaServ) SaveKertasKerja(payload *dto.IsiKertasKerjaRequest, userID uint64) (*dto.RiwayatKertasKerjaResponse, error) {
+	user, err := s.userRepo.GetById(userID)
+	if err != nil {
+		return nil, fmt.Errorf("user tidak ditemukan: %w", err)
+	}
+
+	// Simpan ke Excel
+	excelPath, err := IsiDataLelangKeExcel(payload)
+	if err != nil {
+		return nil, fmt.Errorf("gagal simpan excel: %w", err)
+	}
+
+	// Convert ke PDF
+	pdfPath, err := ConvertExcelToPDF(excelPath)
+	if err != nil {
+		return nil, fmt.Errorf("gagal konversi ke PDF: %w", err)
+	}
+
+	// Simpan ke DB
+	riwayat := &entity.KertasKerja{
+		UserID:             user.ID,
+		NUP:                payload.InputLelang.NUP,
+		KodeSatker:         user.KodeKL,
+		HasilNilaiTaksiran: payload.HasilTaksiran.TotalNilaiTaksiran,
+		NamaObjek:          payload.InputLelang.NamaObjek,
+		PdfPath:            pdfPath,
+		ExcelPath:          excelPath,
+	}
+
+	err = s.kertasKerjarRepo.InsertRiwayatKertasKerja(riwayat)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &dto.RiwayatKertasKerjaResponse{
+		Status:  "200",
+		Message: "Berhasil menyimpan riwayat kertas kerja",
+		Data: dto.RiwayatKertasKerjaData{
+			NamaObjek:  riwayat.NamaObjek,
+			PdfPath:    riwayat.PdfPath,
+			ExcelPath:  riwayat.ExcelPath,
+			IsVerified: riwayat.IsVerified,
+		},
+	}
+
+	return response, nil
+}
+
+func (s *kertasKerjaServ) ValidasiKertasKerja(id uint64, pdfPath string) (*dto.ValidasiKertasKerjaResponse, error) {
+	// Hapus file PDF lama
+	riwayat, err := s.kertasKerjarRepo.GetRiwayatKertasKerjaByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("data riwayat tidak ditemukan: %w", err)
+	}
+	removeFileFromURL(riwayat.PdfPath)
+
+	// Update path PDF baru di database
+	err = s.kertasKerjarRepo.ValidasiKertasKerja(id, pdfPath)
+	if err != nil {
+		return nil, fmt.Errorf("gagal validasi kertas kerja: %w", err)
+	}
+	return &dto.ValidasiKertasKerjaResponse{
+		Status:  "200",
+		Message: "Kertas kerja berhasil divalidasi dan PDF telah diperbarui",
+	}, nil
+}
+
+func IsiDataLelangKeExcel(data *dto.IsiKertasKerjaRequest) (savePath string, err error) {
+	f, err := excelize.OpenFile("assets/template/Kertas_Kerja_template.xlsx")
+	if err != nil {
+		return "", err
+	}
+
+	sheet := "kertas_kerja" // misal: Sheet1
+
+	// Identitas Kendaraan
+	f.SetCellValue(sheet, "E11", data.InputLelang.NamaObjek)
+	f.SetCellValue(sheet, "K11", data.InputLelang.NUP)
+
+	f.SetCellValue(sheet, "E12", data.InputLelang.LokasiObjek)
+	f.SetCellValue(sheet, "K12", data.InputLelang.KategoriLokasi)
+
+	switch data.InputLelang.JenisKendaraan {
 	case "Roda 4 atau lebih":
 		f.SetCellValue(sheet, "I13", "✓")
 	case "Roda 2":
 		f.SetCellValue(sheet, "E13", "✓")
 	}
 
-	f.SetCellValue(sheet, "E14", input.MerekKendaraan)
-	f.SetCellValue(sheet, "E15", input.TipeKendaraan)
+	f.SetCellValue(sheet, "E14", data.InputLelang.MerekKendaraan)
+	f.SetCellValue(sheet, "E15", data.InputLelang.TipeKendaraan)
 
-	f.SetCellValue(sheet, "E17", input.NomorPolisi)
+	f.SetCellValue(sheet, "E17", data.InputLelang.NomorPolisi)
 
-	switch input.DokumenKepemilikan {
-	case "BPKB":
-		f.SetCellValue(sheet, "E18", "✓")
-	case "STNK":
-		f.SetCellValue(sheet, "I18", "✓")
-	case "Lainnya":
-		f.SetCellValue(sheet, "L18", "✓")
-	case "Tidak ada":
-		f.SetCellValue(sheet, "P18", "✓")
+	// DokumenKepemilikan sekarang array, centang semua yang sesuai
+	for _, dok := range data.InputLelang.DokumenKepemilikan {
+		switch dok {
+		case "BPKB":
+			f.SetCellValue(sheet, "E18", "✓")
+		case "STNK":
+			f.SetCellValue(sheet, "I18", "✓")
+		case "Lainnya":
+			f.SetCellValue(sheet, "L18", "✓")
+		case "Tidak ada":
+			f.SetCellValue(sheet, "P18", "✓")
+		}
 	}
 
-	f.SetCellValue(sheet, "E19", input.PemilikDokumen)
+	f.SetCellValue(sheet, "E19", data.InputLelang.PemilikDokumen)
 
-	switch input.MasaBerlaku {
+	switch data.InputLelang.MasaBerlaku {
 	case "Masih Berlaku":
 		f.SetCellValue(sheet, "E20", "✓")
 	case "Habis Masa Berlaku":
 		f.SetCellValue(sheet, "I20", "✓")
 	}
 
-	f.SetCellValue(sheet, "E22", input.PenggunaanKendaraan)
-	f.SetCellValue(sheet, "E23", input.Keterangan)
+	f.SetCellValue(sheet, "E22", data.InputLelang.PenggunaanKendaraan)
+	f.SetCellValue(sheet, "E23", data.InputLelang.Keterangan)
 
-	f.SetCellValue(sheet, "E26", input.Warna)
-	f.SetCellValue(sheet, "E27", input.TahunPembuatan)
-	f.SetCellValue(sheet, "E28", input.BahanBakar)
+	f.SetCellValue(sheet, "E26", data.InputLelang.Warna)
+	f.SetCellValue(sheet, "E27", data.InputLelang.TahunPembuatan)
+	f.SetCellValue(sheet, "E28", data.InputLelang.BahanBakar)
 
-	// Centang kondisi kendaraan berdasarkan nilai
-	switch input.KondisiKendaraan {
+	switch data.InputLelang.KondisiKendaraan {
 	case "0.5":
 		f.SetCellValue(sheet, "M26", "✓")
 	case "0.6":
@@ -162,8 +365,8 @@ func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.Da
 	}
 
 	// Isi data pembanding
-	if len(*dataPembanding) > 0 {
-		for i, pembanding := range *dataPembanding {
+	if len(data.DataPembanding) > 0 {
+		for i, pembanding := range data.DataPembanding {
 			row := 31 + i // Mulai dari baris 32 untuk data pembanding
 			f.SetCellValue(sheet, "B"+strconv.Itoa(row), pembanding.Merek)
 			f.SetCellValue(sheet, "D"+strconv.Itoa(row), pembanding.KodeLelang)
@@ -176,10 +379,64 @@ func IsiDataInputKeExcel(input *dto.KertasKerjaRequest, dataPembanding *[]dto.Da
 		}
 	}
 
-	savePath := "assets/kertas_kerja/Kertas_Kerja_" + time.Now().Format("02_01_2006") + ".xlsx"
+	// Data Penyesuaian
+	if len(data.DataPenyesuaian) > 0 {
+		for i, penyesuaian := range data.DataPenyesuaian {
+			row := 40 + i // Mulai dari baris setelah data pembanding
+			f.SetCellValue(sheet, "C"+strconv.Itoa(row), penyesuaian.DataHasilLelang)
+			f.SetCellValue(sheet, "E"+strconv.Itoa(row), FormatPercent(penyesuaian.Tipe))
+			f.SetCellValue(sheet, "G"+strconv.Itoa(row), FormatPercent(penyesuaian.Merek))
+			f.SetCellValue(sheet, "H"+strconv.Itoa(row), FormatPercent(penyesuaian.Waktu))
+			f.SetCellValue(sheet, "J"+strconv.Itoa(row), FormatPercent(penyesuaian.Lokasi))
+			f.SetCellValue(sheet, "K"+strconv.Itoa(row), FormatPercent(penyesuaian.TahunPembuatan))
+			f.SetCellValue(sheet, "N"+strconv.Itoa(row), FormatPercent(penyesuaian.Total))
+			f.SetCellValue(sheet, "P"+strconv.Itoa(row), penyesuaian.NilaiTaksiran)
+		}
+	}
+
+	f.SetCellValue(sheet, "N49", data.FaktorKondisi)
+
+	// Hasil Taksiran
+
+	if data.HasilTaksiran.TotalNilaiTaksiran != 0 || data.HasilTaksiran.RataRataNilaiTaksiran != 0 ||
+		data.HasilTaksiran.TaksiranNilaiLimitLelang != 0 || data.HasilTaksiran.Pembulatan != 0 {
+		f.SetCellValue(sheet, "P"+strconv.Itoa(47), data.HasilTaksiran.TotalNilaiTaksiran)
+		f.SetCellValue(sheet, "P"+strconv.Itoa(48), data.HasilTaksiran.RataRataNilaiTaksiran)
+		f.SetCellValue(sheet, "P"+strconv.Itoa(49), data.HasilTaksiran.TaksiranNilaiLimitLelang)
+		f.SetCellValue(sheet, "P"+strconv.Itoa(50), data.HasilTaksiran.Pembulatan)
+	}
+
+	baseURL := os.Getenv("BASE_URL")
+	savePath = "assets/kertas_kerja/Kertas_Kerja_" + data.InputLelang.NamaObjek + "_" + data.InputLelang.NUP + "_" + time.Now().Format("02_01_2006_15_04_05") + ".xlsx"
+	excelPath := baseURL + "/" + savePath
 	// Simpan file hasil
-	return f.SaveAs(savePath)
-	// return savePath, err
+	f.SaveAs(savePath)
+
+	return excelPath, err
+}
+
+func ConvertExcelToPDF(excelPath string) (pdfPath string, err error) {
+
+	pdfDir := "assets/kertas_kerja/pdf"
+	if err := os.MkdirAll(pdfDir, 0755); err != nil {
+		return "", err
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		cmd := exec.Command("libreoffice", "--headless", "--convert-to", "pdf", excelPath, "--outdir", pdfDir)
+		done <- cmd.Run()
+	}()
+
+	err = <-done
+	if err != nil {
+		return "", err
+	}
+
+	baseURL := os.Getenv("BASE_URL")
+	pdfPath = filepath.Join(pdfDir, strings.ReplaceAll(filepath.Base(excelPath), ".xlsx", ".pdf"))
+	pdfPath = baseURL + "/" + pdfPath
+	return pdfPath, nil
 }
 
 // Daftar lokasi per kategori
@@ -222,29 +479,4 @@ func GetKategoriLokasi(rawLokasi string) int {
 		}
 	}
 	return 0 // Tidak terklasifikasi
-}
-
-func (s *kertasKerjaServ) GetDataLelangByKode(kode string) (*dto.DataPembandingResponse, error) {
-	lelang, err := s.kertasKerjarRepo.FindDataLelangByKode(kode)
-	if err != nil {
-		return nil, err
-	}
-
-	kategoriLokasi := GetKategoriLokasi(lelang.Kpknl)
-	lokasiBersih := strings.TrimPrefix(strings.TrimSpace(lelang.Kpknl), "KPKNL ")
-
-	return &dto.DataPembandingResponse{
-		Status:  "200",
-		Message: "Berhasil mendapatkan data lelang",
-		Data: dto.DataPembanding{
-			KodeLelang:     lelang.Kode,
-			Merek:          lelang.Merek,
-			Tipe:           lelang.Tipe,
-			TahunPembuatan: lelang.TahunPembuatan,
-			TahunTransaksi: lelang.TahunLelang,
-			Lokasi:         lokasiBersih,
-			KategoriLokasi: kategoriLokasi,
-			HargaLelang:    float64(lelang.HargaLaku),
-		},
-	}, nil
 }

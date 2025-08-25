@@ -1,2 +1,6 @@
 .env
 assets/kertas_kerja/
+assets/kertas_kerja/pdf
+
+private.pem
+public.pem

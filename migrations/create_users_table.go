@@ -20,15 +20,15 @@ func (m *createUsersTable) Up(conn *sql.Tx) error {
 
 	_, err := conn.Exec(`
 	CREATE TABLE users (
-		id                 SERIAL PRIMARY KEY,
-		nama_satker        varchar(255) NOT NULL,
-		kode_satker        varchar(255) NOT NULL,
-		email              varchar(255) NOT NULL,
-		nama               varchar(255) NOT NULL,
-		role               varchar(10) NOT NULL,
-		password           varchar(255) NOT NULL,
-		updated_at         TIMESTAMP NOT NULL DEFAULT NOW(),
-		created_at         TIMESTAMP NOT NULL DEFAULT NOW()
+		id                 	SERIAL PRIMARY KEY,
+		nama_satker        	varchar(255) NOT NULL,
+		kode_kl            	varchar(255) NOT NULL,
+		email              	varchar(255) NOT NULL,
+		role               	varchar(10) NOT NULL DEFAULT 'satker'::character varying,
+		password            varchar(255) NOT NULL,
+		is_verified         varchar(15) NOT NULL DEFAULT 'menunggu',
+		updated_at          TIMESTAMP NOT NULL DEFAULT NOW(),
+		created_at          TIMESTAMP NOT NULL DEFAULT NOW()
 	)`)
 
 	if err != nil {

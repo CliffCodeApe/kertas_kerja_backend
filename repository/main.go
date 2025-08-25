@@ -9,5 +9,7 @@ import (
 func New(db *gorm.DB) *contract.Repository {
 	return &contract.Repository{
 		KertasKerja: implKertasKerjaRepository(db),
+		User:        implUserRepository(db),
+		DataLelang:  implDataLelangRepository(db),
 	}
 }
